@@ -7,8 +7,8 @@ Runs entirely on Cloudflare's free tier:
 
 | Part | Tech | Where |
 |---|---|---|
-| Pages (UI) | [Astro](https://astro.build) static output + small vanilla TypeScript scripts | Cloudflare Pages |
-| API | [Hono](https://hono.dev) on Pages Functions (`/api/*`) | Cloudflare Pages Functions |
+| Pages (UI) | [Astro](https://astro.build) static output + small vanilla TypeScript scripts | Cloudflare Workers static assets |
+| API | [Hono](https://hono.dev) Worker (`/api/*`) | Cloudflare Workers |
 | Database | SQLite via Cloudflare D1 | Cloudflare D1 |
 | Sign-in | Google OAuth 2.0 / OpenID Connect | Google Cloud |
 | Statement parsing | [SheetJS](https://sheetjs.com), **in the browser**: files are never uploaded | — |
@@ -33,7 +33,7 @@ npm install
 3. **Create credentials → OAuth client ID → Web application.**
 4. Under **Authorized redirect URIs** add both:
    - `http://localhost:8788/api/auth/callback` (local development)
-   - `https://<your-project>.pages.dev/api/auth/callback` (production; add your custom domain too if you use one)
+   - `https://pfm.arnavg.me/api/auth/callback` (production)
 5. Copy the **Client ID** and **Client secret**.
 
 ## 3. Local development
@@ -41,7 +41,7 @@ npm install
 ```sh
 cp .dev.vars.example .dev.vars        # then paste your Google client ID/secret and set OWNER_EMAILS
 npm run db:migrate:local              # creates the local SQLite DB with tables + built-in categories
-npm run dev                           # builds the site and serves site + API on http://localhost:8788
+npm run dev                           # builds the site and serves site + API on http://localhost:8788 (wrangler dev)
 ```
 
 Open **http://localhost:8788** (use `localhost`, not `127.0.0.1`, so it matches the Google redirect URI).
@@ -73,28 +73,27 @@ One-time setup. After this, every `git push` to `main` redeploys automatically.
    npx wrangler d1 create finance-db          # paste the database_id into wrangler.toml
    npm run db:migrate:remote                  # creates the tables in production
    ```
-2. **Connect GitHub**: Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** →
-   pick this repository, then:
-   - Production branch: `main`
-   - Framework preset: `Astro`
+2. **Connect GitHub**: Cloudflare dashboard → **Workers & Pages → Create → Import a repository** → pick this
+   repository. The Worker name must equal `name` in `wrangler.toml` (`personal-finance-manager`). Then:
    - Build command: `npm run build`
-   - Build output directory: `dist`
+   - Deploy command: `npx wrangler deploy`
+   - Production branch: `main`
 
-   Cloudflare reads `wrangler.toml` for the D1 binding and `APP_URL`, and `.node-version` for Node 22.
-   A project created with `wrangler pages project create` (Direct Upload) **cannot** be switched to Git, so create
-   a new one here and delete the old one.
-3. **Secrets**: project → **Settings → Variables and Secrets** → add these as type *Secret* for **Production**:
-   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OWNER_EMAILS`.
-4. **Custom domain**: project → **Custom domains** → add `pfm.arnavg.me`. `APP_URL` in `wrangler.toml` must match it exactly.
-5. **Google Cloud Console** → OAuth client → Authorized redirect URI `https://pfm.arnavg.me/api/auth/callback`.
+   `wrangler.toml` provides everything else: the static files in `dist`, the `/api/*` Worker, the D1 binding,
+   `APP_URL`, and the custom domain `pfm.arnavg.me` (created automatically on deploy; the `arnavg.me` zone must
+   be in the same Cloudflare account). `.node-version` pins Node 22.
+3. **Secrets**: Worker → **Settings → Variables and Secrets** → add as type *Secret*:
+   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OWNER_EMAILS`. (Or `npx wrangler secret put <NAME>`.)
+   Secrets survive deploys; plain variables come from `wrangler.toml`.
+4. **Google Cloud Console** → OAuth client → Authorized redirect URI `https://pfm.arnavg.me/api/auth/callback`.
    On the consent screen set the homepage to `https://pfm.arnavg.me` and the privacy policy to
    `https://pfm.arnavg.me/privacy/`, then **Publish app**.
-6. **Retry deployment** (Deployments tab) so the secrets are picked up, then sign in at `https://pfm.arnavg.me`.
+5. Push to `main` (or click **Retry build**) and sign in at `https://pfm.arnavg.me`.
 
 ### Day-to-day
 
-- Code changes: commit and `git push`. Cloudflare builds and deploys `main` in about a minute. Pushes to other
-  branches get preview URLs. Sign-in only works on the production URL, because Google redirects to `APP_URL`.
+- Code changes: commit and `git push`. Cloudflare builds and deploys `main` in about a minute. There are no
+  workers.dev or preview URLs (disabled in `wrangler.toml`), so the app only exists at `APP_URL`.
 - **Database changes are not applied by the build.** Add `migrations/000N_name.sql`, run
   `npm run db:migrate:remote`, then push.
 - Manual deploy without Git: `npm run deploy`.
@@ -102,8 +101,9 @@ One-time setup. After this, every `git push` to `main` redeploys automatically.
 
 ### What it costs
 
-Nothing for personal use. Free-tier limits at the time of writing: Pages has unlimited static requests and
-500 builds/month, Functions allow 100,000 requests/day, and D1 allows 5 GB storage and 5 million row reads/day.
+Nothing for personal use. Free-tier limits at the time of writing: static asset requests are free and unlimited,
+the Worker allows 100,000 API requests/day, builds are included, and D1 allows 5 GB storage and 5 million row
+reads/day.
 
 ## Who can sign in
 
@@ -155,9 +155,9 @@ non-owner hitting admin endpoints). Each row stores time, user, action, result, 
 
 ```
 astro.config.mjs        Astro config (static output, strict CSP)
-wrangler.toml           Cloudflare Pages + D1 config
+wrangler.toml           Cloudflare Worker + static assets + D1 config
 migrations/             SQL schema + seed data (applied with wrangler d1 migrations)
-functions/api/[[route]].ts   Pages Function entry: hands /api/* to Hono
+server/worker.ts        Worker entry: /api/* goes to the Hono app (everything else is static)
 server/                 API: app.ts (middleware), auth.ts (Google OAuth + sessions), routes/
 src/pages/              Pages: / (landing), /login, /app/* (signed-in area)
 src/layouts/            Base HTML + app shell (sidebar)
