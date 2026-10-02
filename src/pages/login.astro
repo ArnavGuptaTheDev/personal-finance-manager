@@ -1,0 +1,67 @@
+---
+import Logo from '../components/Logo.astro';
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Sign in · Personal Finance Manager">
+  <main class="login">
+    <div class="card panel">
+      <a class="brand" href="/"><Logo /><span>Personal Finance Manager</span></a>
+      <h1>Sign in</h1>
+      <p class="muted">Invite only. Use the Google account the owner gave access to. This app never sees your password.</p>
+      <p id="login-error" class="error" role="alert" hidden></p>
+      <a id="google-btn" class="btn btn-primary google" href="/api/auth/google">
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.1 3.5-8.7z"></path>
+          <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"></path>
+          <path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8z"></path>
+          <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9z"></path>
+        </svg>
+        Continue with Google
+      </a>
+      <p class="muted small legal">By signing in you agree to the <a href="/privacy/">Privacy Policy</a>.</p>
+    </div>
+  </main>
+</Base>
+
+<script>
+  const messages: Record<string, string> = {
+    cancelled: 'Sign-in was cancelled.',
+    not_allowed: 'This Google account has not been invited. Ask the app owner to give you access.',
+    not_configured: 'Google sign-in is not configured on the server yet.',
+    invalid_state: 'Your sign-in session expired. Please try again.',
+    missing_cookie:
+      'Sign-in cookie was missing. Open the app at the exact address in APP_URL (e.g. localhost, not 127.0.0.1) and try again.',
+    invalid_request: 'Google returned an incomplete response. Please try again.',
+    token_exchange_failed: 'Google rejected the sign-in. Check GOOGLE_CLIENT_SECRET and the redirect URI (see server log).',
+    invalid_token: 'Google’s identity token could not be verified (is your Google email verified?).',
+    server_error: 'Could not save your account. Did you run the database migration?',
+  };
+  const params = new URLSearchParams(location.search);
+  const error = params.get('error');
+  if (error) {
+    const el = document.getElementById('login-error')!;
+    el.textContent = messages[error] ?? 'Sign-in failed. Please try again.';
+    el.hidden = false;
+  }
+  const next = params.get('next');
+  if (next?.startsWith('/') && !next.startsWith('//')) {
+    const btn = document.getElementById('google-btn') as HTMLAnchorElement;
+    btn.href = `/api/auth/google?next=${encodeURIComponent(next)}`;
+  }
+  // Already signed in? Go straight to the app.
+  fetch('/api/me', { credentials: 'same-origin' }).then((r) => {
+    if (r.ok && !error) location.replace(next?.startsWith('/') && !next.startsWith('//') ? next : '/app/');
+  });
+</script>
+
+<style>
+  .login { min-height: 100dvh; display: grid; place-items: center; padding: 16px; }
+  .panel { width: min(400px, 100%); padding: 2rem; display: grid; gap: 0.4rem; }
+  .brand { margin-bottom: 1rem; padding: 0; }
+  .panel h1 { margin: 0; }
+  .google { justify-content: center; padding: 0.75rem 1rem; margin-top: 0.8rem; }
+  .google svg { background: #fff; border-radius: 50%; padding: 2px; width: 22px; height: 22px; }
+  .legal { margin: 0.8rem 0 0; text-align: center; }
+  .error { color: var(--danger); font-weight: 550; margin: 0.4rem 0 0; }
+</style>

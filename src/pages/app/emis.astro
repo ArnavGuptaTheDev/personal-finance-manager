@@ -1,0 +1,53 @@
+---
+import AppShell from '../../layouts/AppShell.astro';
+---
+
+<AppShell title="EMIs" heading="EMIs" subtitle="Recurring loan instalments and what's left to pay">
+  <div class="stack">
+    <section class="grid grid-kpi">
+      <div class="card kpi"><div class="label">Monthly outgo (approx.)</div><div class="value spend" id="monthly">—</div></div>
+      <div class="card kpi"><div class="label">Remaining to pay</div><div class="value" id="remaining">—</div></div>
+    </section>
+
+    <form id="emi-form" class="card form-grid">
+      <label>Loan name<input name="title" required maxlength="120" placeholder="e.g. Car loan" /></label>
+      <label>Lender<input name="lender" maxlength="120" placeholder="e.g. HDFC Bank" /></label>
+      <label>Instalment (₹)<input name="installment" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
+      <label>Every
+        <span class="row">
+          <input name="frequency_value" type="number" min="1" max="365" value="1" required class="every" aria-label="Interval" />
+          <select name="frequency_unit" aria-label="Unit">
+            <option value="months">month(s)</option>
+            <option value="weeks">week(s)</option>
+            <option value="days">day(s)</option>
+            <option value="years">year(s)</option>
+          </select>
+        </span>
+      </label>
+      <label>First instalment<input name="start_date" type="date" required /></label>
+      <label>Last instalment<input name="end_date" type="date" required /></label>
+      <div><button class="btn btn-primary" type="submit" id="emi-save">Add EMI</button></div>
+    </form>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Loan</th><th class="right">Instalment</th><th>Progress</th><th>Next due</th><th class="right">Remaining</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="emi-rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</AppShell>
+
+<script>
+  import '../../client/pages/emis';
+</script>
+
+<style>
+  .every { width: 5rem; }
+</style>

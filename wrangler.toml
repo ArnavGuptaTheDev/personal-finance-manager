@@ -1,0 +1,19 @@
+# Cloudflare Pages project config (static site in ./dist + Pages Functions in ./functions)
+name = "personal-finance-manager"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-09-01"
+
+[vars]
+# Public URL of the deployed site, no trailing slash. Used to build the OAuth
+# redirect URI and for the CSRF origin check. Overridden locally by .dev.vars.
+APP_URL = "https://pfm.arnavg.me"
+# Secrets (set with `npx wrangler pages secret put <NAME>`, never commit them):
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+#   OWNER_EMAILS  comma-separated owner (super user) Google emails. Owners can sign in,
+#                 invite other people and read the audit log. If empty, NOBODY can sign in.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "finance-db"
+database_id = "3f63e0ea-87fe-4392-86ce-14d29b2b24f4"
+migrations_dir = "migrations"

@@ -1,0 +1,81 @@
+---
+import AppShell from '../../layouts/AppShell.astro';
+---
+
+<AppShell title="Transactions" heading="Transactions" subtitle="Search, recategorize and edit">
+  <button slot="actions" id="add-btn" class="btn btn-primary" type="button">+ Add transaction</button>
+
+  <div class="stack">
+    <form id="filters" class="card form-grid" role="search">
+      <label>Search<input name="q" type="search" placeholder="Description or remark" maxlength="100" /></label>
+      <label>Category<select name="category" id="filter-category"><option value="">All categories</option></select></label>
+      <label>Type
+        <select name="type">
+          <option value="">Debits & credits</option>
+          <option value="debit">Debits only</option>
+          <option value="credit">Credits only</option>
+        </select>
+      </label>
+      <label>From<input name="from" type="date" /></label>
+      <label>To<input name="to" type="date" /></label>
+      <div class="row"><button class="btn" type="submit">Apply</button><button class="btn btn-ghost" type="reset">Clear</button></div>
+    </form>
+
+    <section class="card">
+      <div class="row">
+        <p id="count" class="muted small">Loading…</p>
+        <span class="spacer"></span>
+        <label class="row" id="bulk-box" hidden>
+          <span id="bulk-count"></span>
+          <select id="bulk-category"></select>
+          <button id="bulk-apply" class="btn btn-sm" type="button">Set category</button>
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="select-all" aria-label="Select all on this page" /></th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th class="right">Amount</th>
+              <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="row" id="pager">
+        <button class="btn btn-sm" id="prev" type="button">← Newer</button>
+        <span class="muted small" id="page-info"></span>
+        <button class="btn btn-sm" id="next" type="button">Older →</button>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="txn-dialog" aria-labelledby="txn-dialog-title">
+    <form id="txn-form" method="dialog" class="stack">
+      <h2 id="txn-dialog-title">Add transaction</h2>
+      <div class="form-grid">
+        <label>Date<input name="date" type="date" required /></label>
+        <label>Amount (₹)<input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
+        <label>Type
+          <select name="type"><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option></select>
+        </label>
+        <label>Category<select name="category_id" id="txn-category"></select></label>
+      </div>
+      <label>Description<input name="description" required maxlength="500" /></label>
+      <label>Remark<input name="remark" maxlength="500" placeholder="Optional note" /></label>
+      <div class="row">
+        <span class="spacer"></span>
+        <button class="btn" type="button" id="txn-cancel">Cancel</button>
+        <button class="btn btn-primary" type="submit" id="txn-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+</AppShell>
+
+<script>
+  import '../../client/pages/transactions';
+</script>

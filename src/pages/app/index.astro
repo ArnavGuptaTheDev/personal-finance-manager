@@ -1,0 +1,48 @@
+---
+import AppShell from '../../layouts/AppShell.astro';
+---
+
+<AppShell title="Dashboard" heading="Dashboard" subtitle="Your money at a glance">
+  <label slot="actions">
+    <span class="visually-hidden">Period</span>
+    <select id="range">
+      <option value="this-month">This month</option>
+      <option value="last-month">Last month</option>
+      <option value="3-months">Last 3 months</option>
+      <option value="12-months" selected>Last 12 months</option>
+      <option value="this-year">This year</option>
+      <option value="all">All time</option>
+    </select>
+  </label>
+
+  <div class="stack">
+    <section class="grid grid-kpi" aria-label="Totals">
+      <div class="card kpi"><div class="label">Income</div><div class="value income" id="kpi-income">—</div></div>
+      <div class="card kpi"><div class="label">Spending</div><div class="value spend" id="kpi-spend">—</div></div>
+      <div class="card kpi"><div class="label">Net</div><div class="value" id="kpi-net">—</div></div>
+      <div class="card kpi"><div class="label">Transactions</div><div class="value" id="kpi-count">—</div></div>
+    </section>
+
+    <p id="uncat-note" class="card small" hidden></p>
+
+    <section class="grid grid-2">
+      <div class="card"><h2>Income vs spending</h2><div id="monthly"></div></div>
+      <div class="card"><h2>Spending by category</h2><div id="by-category"></div></div>
+    </section>
+
+    <section class="grid grid-2">
+      <div class="card">
+        <div class="row"><h2>Budgets this month</h2><span class="spacer"></span><a class="small" href="/app/budgets/">Manage</a></div>
+        <div id="budgets"></div>
+      </div>
+      <div class="card">
+        <div class="row"><h2>Recent transactions</h2><span class="spacer"></span><a class="small" href="/app/transactions/">View all</a></div>
+        <div id="recent"></div>
+      </div>
+    </section>
+  </div>
+</AppShell>
+
+<script>
+  import '../../client/pages/dashboard';
+</script>

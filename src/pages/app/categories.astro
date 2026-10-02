@@ -1,0 +1,30 @@
+---
+import AppShell from '../../layouts/AppShell.astro';
+---
+
+<AppShell title="Categories" heading="Categories" subtitle="Rules that sort imported transactions automatically">
+  <div class="stack">
+    <form id="cat-form" class="card form-grid">
+      <label>New category<input name="name" required maxlength="60" placeholder="e.g. Pets" /></label>
+      <label>Kind
+        <select name="kind">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+          <option value="transfer">Transfer (excluded from totals)</option>
+        </select>
+      </label>
+      <div><button class="btn btn-primary" type="submit" id="cat-save">Add category</button></div>
+    </form>
+
+    <p class="muted small">
+      Keywords match whole words in the transaction description (case-insensitive). Regex rules are for advanced patterns and
+      are checked first. Your own rules always win over the built-in ones.
+    </p>
+
+    <div id="cat-list" class="grid grid-2"></div>
+  </div>
+</AppShell>
+
+<script>
+  import '../../client/pages/categories';
+</script>

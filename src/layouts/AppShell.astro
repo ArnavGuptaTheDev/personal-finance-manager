@@ -1,0 +1,76 @@
+---
+// Layout for every signed-in page under /app/.
+import Logo from '../components/Logo.astro';
+import Base from './Base.astro';
+
+interface Props {
+  title: string;
+  heading: string;
+  subtitle?: string;
+}
+const { title, heading, subtitle } = Astro.props;
+const path = Astro.url.pathname.replace(/\/?$/, '/');
+
+// Edit this list to change the sidebar. Icons are 24×24 stroke paths.
+const nav = [
+  { href: '/app/', label: 'Dashboard', icon: 'M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z' },
+  { href: '/app/transactions/', label: 'Transactions', icon: 'M4 6h16M4 12h16M4 18h10' },
+  { href: '/app/import/', label: 'Import', icon: 'M12 3v12m0 0l-4-4m4 4l4-4M4 17v3h16v-3' },
+  { href: '/app/budgets/', label: 'Budgets', icon: 'M12 2a10 10 0 1 0 10 10H12z M14 2.2V10h7.8A10 10 0 0 0 14 2.2z' },
+  { href: '/app/categories/', label: 'Categories', icon: 'M3 3h7l11 11-7 7L3 10zM7.5 7.5h.01' },
+  { href: '/app/loans/', label: 'Loans', icon: 'M17 20v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 20v-2a4 4 0 0 0-3-3.9M16 2.1a4 4 0 0 1 0 7.8' },
+  { href: '/app/emis/', label: 'EMIs', icon: 'M3 5h18v14H3zM3 10h18M8 15h3' },
+  { href: '/app/admin/', label: 'Access', ownerOnly: true, icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4' },
+  { href: '/app/admin/audit/', label: 'Audit log', ownerOnly: true, icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5' },
+  { href: '/app/settings/', label: 'Settings', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z' },
+];
+---
+
+<Base title={`${title} · Personal Finance Manager`}>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="/app/"><Logo /><span>Personal Finance Manager</span></a>
+      <nav class="nav" aria-label="Main">
+        {
+          nav.map((item) => (
+            <a
+              href={item.href}
+              aria-current={path === item.href ? 'page' : undefined}
+              data-owner-only={item.ownerOnly ? '' : undefined}
+              hidden={item.ownerOnly}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d={item.icon} />
+              </svg>
+              <span>{item.label}</span>
+            </a>
+          ))
+        }
+      </nav>
+      <div class="user-box">
+        <img id="user-avatar" alt="" hidden referrerpolicy="no-referrer" />
+        <div class="who">
+          <span id="user-name">…</span>
+          <span id="user-email" class="muted small"></span>
+        </div>
+        <button id="logout" class="btn btn-ghost btn-sm" type="button" title="Sign out">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+      <header class="page-head">
+        <div>
+          <h1>{heading}</h1>
+          {subtitle && <p class="muted">{subtitle}</p>}
+        </div>
+        <div class="spacer"></div>
+        <slot name="actions" />
+      </header>
+      <slot />
+    </main>
+  </div>
+</Base>
+
+<script>
+  import '../client/shell';
+</script>

@@ -1,0 +1,43 @@
+---
+import AppShell from '../../layouts/AppShell.astro';
+---
+
+<AppShell title="Loans" heading="Loans" subtitle="Money lent to or borrowed from people you know">
+  <div class="stack">
+    <section class="grid grid-kpi">
+      <div class="card kpi"><div class="label">Owed to you</div><div class="value income" id="owed-to-me">—</div></div>
+      <div class="card kpi"><div class="label">You owe</div><div class="value spend" id="i-owe">—</div></div>
+    </section>
+
+    <form id="loan-form" class="card form-grid">
+      <label>Person
+        <select name="person_id" id="loan-person" required></select>
+      </label>
+      <label>Direction
+        <select name="direction">
+          <option value="lent">I lent money</option>
+          <option value="borrowed">I borrowed money</option>
+        </select>
+      </label>
+      <label>What for<input name="title" required maxlength="120" placeholder="e.g. Trip advance" /></label>
+      <label>Amount (₹)<input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
+      <label>Date<input name="date" type="date" required /></label>
+      <div><button class="btn btn-primary" type="submit" id="loan-save">Add loan</button></div>
+    </form>
+
+    <div id="loan-list" class="stack"></div>
+
+    <section class="card">
+      <h2>People</h2>
+      <form id="person-form" class="row">
+        <input name="name" required maxlength="80" placeholder="Name" aria-label="Name" />
+        <button class="btn" type="submit" id="person-save">Add person</button>
+      </form>
+      <ul id="people" class="plain-list"></ul>
+    </section>
+  </div>
+</AppShell>
+
+<script>
+  import '../../client/pages/loans';
+</script>

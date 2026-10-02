@@ -1,0 +1,9 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+APP_URL=http://localhost:8788
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+# Owners (super users), comma separated. Only they can sign in at first; they invite
+# everyone else from Admin > Access. If empty, nobody can sign in.
+OWNER_EMAILS=
+# Only needed for `npm run dev:ui` (Astro dev server on :4321 calling the API)
+DEV_ORIGIN=http://localhost:4321

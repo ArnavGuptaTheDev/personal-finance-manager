@@ -1,0 +1,58 @@
+---
+import AppShell from '../../layouts/AppShell.astro';
+---
+
+<AppShell title="Import" heading="Import a statement" subtitle="Parsed on your device — the file itself is never uploaded">
+  <div class="stack">
+    <form id="parse-form" class="card form-grid">
+      <label>Bank
+        <select name="bank">
+          <option value="hdfc">HDFC Bank</option>
+          <option value="icici">ICICI Bank</option>
+        </select>
+      </label>
+      <label>Account
+        <select name="account">
+          <option value="savings">Savings account</option>
+          <option value="credit_card">Credit card</option>
+        </select>
+      </label>
+      <label>Statement file<input name="file" type="file" accept=".csv,.xls,.xlsx" required /></label>
+      <div><button class="btn btn-primary" id="parse-btn" type="submit">Read statement</button></div>
+      <p class="muted small" id="hint">
+        Download the statement from net banking as Excel (.xls) or CSV. Re-importing an overlapping period is safe: duplicates are skipped.
+      </p>
+    </form>
+
+    <section class="card" id="preview" hidden>
+      <div class="row">
+        <h2>Review</h2>
+        <span class="spacer"></span>
+        <span class="muted small" id="preview-meta"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="all" checked aria-label="Select all" /></th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th class="right">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="preview-rows"></tbody>
+        </table>
+      </div>
+      <div class="row">
+        <span class="spacer"></span>
+        <button class="btn" id="discard" type="button">Discard</button>
+        <button class="btn btn-primary" id="save" type="button">Import</button>
+      </div>
+    </section>
+  </div>
+</AppShell>
+
+<script>
+  import '../../client/pages/import';
+</script>

@@ -1,0 +1,34 @@
+---
+import AppShell from '../../../layouts/AppShell.astro';
+---
+
+<AppShell title="Access" heading="Access" subtitle="Who can use this app. Owners are set in OWNER_EMAILS.">
+  <div class="stack">
+    <p id="not-owner" class="card" hidden>Only owners can manage access.</p>
+
+    <form id="grant-form" class="card form-grid">
+      <label>Google email to invite<input name="email" type="email" required maxlength="254" autocomplete="off" placeholder="friend@gmail.com" /></label>
+      <label>Note (optional)<input name="note" maxlength="200" placeholder="e.g. Sister" /></label>
+      <div><button class="btn btn-primary" type="submit" id="grant-btn">Give access</button></div>
+      <p class="muted small">
+        Each person only ever sees their own data. As an owner you can see their activity in the audit log, never their
+        transactions or balances.
+      </p>
+    </form>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Person</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Access from</th><th></th></tr>
+          </thead>
+          <tbody id="user-rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</AppShell>
+
+<script>
+  import '../../../client/pages/admin-access';
+</script>
