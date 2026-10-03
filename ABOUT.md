@@ -37,10 +37,19 @@ recurring loan EMIs.
 - **Robust reading:** the parser finds the transaction table even when it is surrounded by bank headers,
   account details or summary rows. It understands Indian date formats (`05/04/24`, `05-Apr-2024` and so
   on), Indian number formatting (`1,23,456.78`), separate debit/credit columns, and Cr/Dr markers.
+  - Real Excel date cells are read by their stored value, so dates are never day/month-swapped.
+  - Description lines that wrap onto the next row are joined back onto their transaction.
+  - Negative amounts (reversals) are imported in the right direction and flagged for a look.
+  - Anything in the table that can't be read is listed with its line number and reason; nothing is dropped
+    silently.
 - **Account detection:** the last four digits of the account or card number are picked up automatically
   and stored with each transaction.
 - **Review before saving:** every row is shown with its date, description, amount and suggested
   category. You can untick rows you don't want and change any category before importing.
+- **Checked against what you already have:** before saving, each row is labelled as **new**, **already
+  imported** or **stored with different details**. The last case covers a transaction saved earlier with a
+  wrong date, a cut-off description or the wrong card digits. You can correct the stored copy in place
+  instead of importing it twice.
 - **No duplicates:** each imported row gets a fingerprint, so importing an overlapping statement (for
   example, last month's and this month's) adds only the new transactions. Genuine repeats inside one
   statement, like two identical ₹20 purchases on the same day, are still kept.
@@ -198,14 +207,17 @@ The app is **invite-only and fails closed**: if something is not explicitly allo
 | **Errors** | Error messages never reveal internal details. |
 | **Exposure** | The app is only reachable at its own domain. Cloudflare's default `workers.dev` and preview addresses are switched off. |
 
-These protections were checked during development with scripted requests against a local copy of the app.
-They are **not yet covered by a committed automated test suite**; one is being added. The checks covered:
+These protections are covered by an automated test suite that runs the real API against a local database on
+every build, and a failing test blocks the deploy. It checks that:
 
 - no route can be used without signing in;
 - members cannot reach owner features;
 - users cannot read, change or delete each other's records;
 - revoked users are cut off immediately;
-- duplicate imports are skipped.
+- cross-site requests and non-JSON bodies are refused;
+- Google sign-in rejects bad, expired or replayed tokens and never creates accounts for uninvited people;
+- the audit log cannot be edited and never contains financial details;
+- duplicate imports are skipped, and statement parsing handles each known edge case.
 
 ---
 

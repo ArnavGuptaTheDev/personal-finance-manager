@@ -59,9 +59,25 @@ Sign in through **:8788** at least once (the cookie is shared across localhost p
 Useful commands:
 
 ```sh
-npm run typecheck                     # type-check UI (astro check) and API (tsc)
+npm test                              # all tests (about 10 s): API security suite + statement parsers
+npm run typecheck                     # type-check UI (astro check), API and tests (tsc)
 npx wrangler d1 execute finance-db --local --command "SELECT COUNT(*) FROM transactions"
 ```
+
+### Tests
+
+- `test/api/`: runs the real Worker (`server/worker.ts`) and a local D1 with every migration applied, inside the
+  Workers runtime (`@cloudflare/vitest-pool-workers`). It covers authentication on every route, roles,
+  per-user isolation for every resource, CSRF and request-format checks, Google sign-in, the audit log and
+  import reconciliation. A test fails if a new API route is added without being listed in `security.test.ts`.
+- `test/unit/`: statement parsers, run in Node against **synthetic** statements generated in
+  `statement-builders.ts`.
+
+`npm run build` runs the tests first, so a failing test stops a Cloudflare deploy.
+
+Real bank statements, even anonymised ones, are **never committed**. Keep them in the git-ignored `samples/`
+folder for local checks, and turn what they reveal into synthetic test cases.
+
 
 ## 4. Deploy to Cloudflare (free, auto-deploys from GitHub)
 
@@ -143,7 +159,8 @@ non-owner hitting admin endpoints). Each row stores time, user, action, result, 
 | App name, sidebar links | `src/layouts/AppShell.astro` |
 | Built-in categories and keywords | `migrations/0001_init.sql` (for an existing DB, add a new migration) |
 | Auto-categorization logic | `src/client/categorize.ts` |
-| Bank statement formats / adding a bank | `src/client/parsers/statement.ts` (the `FORMATS` table) |
+| Bank statement formats / adding a bank | `src/client/parsers/statement.ts` (the `FORMATS` table); add a test in `test/unit/statement.test.ts` |
+| Repairing data imported before the parser fixes | [DATA-REPAIR.md](DATA-REPAIR.md), `scripts/detect-suspect-imports.sql` |
 | API endpoints | `server/routes/*.ts`, wired up in `server/app.ts` |
 | Sign-in, sessions, roles | `server/auth.ts` |
 | Admin API (access, audit log) | `server/routes/admin.ts` |
