@@ -81,10 +81,13 @@ const LABELS: Record<string, string> = {
   'admin.access_revoke': 'Revoked access',
   'admin.user_delete': 'Deleted a user and their data',
   'admin.audit_view': 'Viewed the audit log',
+
+  'audit.purge': 'Daily job removed old audit entries',
+  'retention.purge_deleted': 'Daily job erased records deleted over 30 days ago',
 };
 
 export const actionLabel = (action: string) => LABELS[action] ?? action;
-export const ACTION_GROUPS = ['auth', 'account', 'transaction', 'category', 'budget', 'summary', 'person', 'loan', 'emi', 'import_format', 'admin', 'security'];
+export const ACTION_GROUPS = ['auth', 'account', 'transaction', 'category', 'budget', 'summary', 'person', 'loan', 'emi', 'import_format', 'admin', 'security', 'audit', 'retention'];
 
 const timeFmt = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' });
 export const fmtTime = (unix: number) => timeFmt.format(new Date(unix * 1000));

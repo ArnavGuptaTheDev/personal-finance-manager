@@ -144,7 +144,11 @@ non-owner hitting admin endpoints). Each row stores time, user, action, result, 
 
 - Rows never contain financial content. Request bodies and search terms are not logged, only which filter
   *names* were used.
-- The table is **append-only**: database triggers reject any `UPDATE` or `DELETE`, even from the app itself.
+- The table is **append-only**: database triggers reject any `UPDATE`, and any `DELETE` unless a row exists in
+  `audit_purge_window`. Only the daily cron (`server/lib/retention.ts`, `[triggers]` in `wrangler.toml`) opens that
+  window, inside one transactional batch: open, delete entries older than `AUDIT_RETENTION_DAYS` (400) and the
+  oldest beyond `AUDIT_MAX_ROWS` (500,000), close, record an `audit.purge` summary. The same job erases rows
+  soft-deleted more than 30 days ago. Try it locally with `npx wrangler dev --test-scheduled`.
 - Owners see everything under **Audit log**. Every user sees their own history under **Settings → My activity**.
 
 ---

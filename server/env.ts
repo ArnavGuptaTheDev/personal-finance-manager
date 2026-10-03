@@ -6,6 +6,10 @@ export type Env = {
   /** Comma-separated owner (super user) emails. Empty = nobody can sign in. */
   OWNER_EMAILS?: string;
   DEV_ORIGIN?: string;
+  /** Audit entries older than this many days are deleted by the daily job (default 400). */
+  AUDIT_RETENTION_DAYS?: string;
+  /** Upper bound on audit rows kept; the oldest are trimmed beyond it (default 500000). */
+  AUDIT_MAX_ROWS?: string;
 };
 
 export type Role = 'owner' | 'member';

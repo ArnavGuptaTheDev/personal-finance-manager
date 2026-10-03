@@ -235,12 +235,16 @@ Every request to the app's API creates one audit entry, including requests that 
   - blocked requests, such as a member trying to use owner features or a request without a valid session.
 - **What is never recorded:** amounts, descriptions, search terms or anything else from your financial
   records. Only safe facts, such as how many rows an import added.
-- **Tamper-proof:** the database refuses to edit or delete audit entries, even if the app itself asks.
+- **Tamper-proof:** the database refuses to edit audit entries, and refuses to delete them unless the
+  daily retention job has opened its purge window (no request to the app can do that).
 - **Who can see it:**
   - owners see everyone's activity on the **Audit log** page, filterable by person, activity type, result
     and date;
   - every member sees their own activity under **Settings → My activity**.
 - **Kept after account deletion** as a security record. It holds no financial data.
+- **Retention:** a daily job deletes entries older than 400 days (and the oldest beyond 500,000 entries),
+  then records an "old audit entries removed" summary. The same job erases records you deleted more than
+  30 days ago (deletes can be undone until then).
 
 ---
 
@@ -278,10 +282,12 @@ See [README.md](README.md) for local setup, development, deployment and where to
 
 ## 9. Limitations
 
-- **Supported banks:** HDFC and ICICI statement formats only. Other banks can be added by describing
-  their column layout in one file, or their transactions can be entered by hand.
+- **Supported banks:** HDFC and ICICI statement formats are built in. For other banks, map the columns
+  once on the Import page and save the mapping as a format, or enter transactions by hand.
 - **Currency:** Indian rupees only.
 - **Sign-in:** Google accounts only.
 - **No automatic bank syncing:** statements are imported manually.
-- **Audit log retention:** entries are kept indefinitely; there is no automatic clean-up yet.
+- **Audit log tamper-proofing** stops every request to the app, but code running inside the Worker
+  could still open the purge window. A copy outside the database (for example a nightly export to R2)
+  would close that gap; it isn't built.
 - **Rate limiting:** not built into the app. It can be added with a Cloudflare firewall rule.

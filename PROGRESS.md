@@ -17,7 +17,11 @@ Pending migrations (all additive; no existing column or row is changed):
 - `0003_soft_delete.sql`: a nullable `deleted_at` column on 8 tables, plus partial indexes;
 - `0004_import_formats.sql`: a new `import_formats` table for saved column mappings;
 - `0005_merchant_and_pairs.sql`: nullable `merchant` and `transfer_pair_id` columns on `transactions`, plus
-  indexes. Older rows get their merchant filled in by the app the next time you open Transactions.
+  indexes. Older rows get their merchant filled in by the app the next time you open Transactions;
+- `0006_audit_retention.sql`: a new `audit_purge_window` table, and the audit delete-blocking trigger
+  re-created so it allows deletes only while that window is open (only the daily cron opens it).
+
+The daily cron (`[triggers]` in `wrangler.toml`) starts on the first deploy after you push.
 
 ## Done
 
@@ -91,13 +95,21 @@ Pending migrations (all additive; no existing column or row is changed):
     paired rows show a Transfer badge and an Unpair button and are left out of totals and budgets even if
     recategorised. Tests for finding, confirming, totals and isolation.
 
+- **Phase 7** (committed locally): daily cron (03:00 IST) in `server/worker.ts` → `server/lib/retention.ts`:
+  deletes audit entries older than `AUDIT_RETENTION_DAYS` (400), trims the oldest beyond `AUDIT_MAX_ROWS`
+  (500,000), records an `audit.purge` summary, all in one transactional batch through the purge window;
+  then erases soft-deleted rows older than 30 days and records a summary. Tests: normal-path deletes and
+  updates still fail, API requests never open the window, the purge removes exactly the eligible rows,
+  the row cap trims oldest first, the deleted-record purge, and a static check that only the retention job
+  mentions the window. Privacy policy, ABOUT.md and README updated.
+
 ## In progress
 
-- Phase 7: audit log retention (and the 30-day purge of soft-deleted rows).
+- Nothing. All requested phases are done and committed locally; waiting on the migrations and push above.
 
 ## Next
 
-- Final summary.
+- Your decisions below, then push.
 
 ## Decisions made on your behalf
 
@@ -139,6 +151,17 @@ Pending migrations (all additive; no existing column or row is changed):
   tests); those tests now have their own `test/tsconfig.unit.json`, and the script checks both.
 - Node's `windows-1252` decoder maps 0x80–0x9F as Latin-1, so the parser maps that range itself (€, smart
   quotes, dashes) to behave the same in every browser.
+
+## Needs your decision
+
+- **View logging (Phase 7 proposal, not built):** stop writing a row for every successful GET and keep
+  one `session.activity` row per user per day instead (writes, failures, sign-ins and sensitive reads still
+  logged individually); cuts audit volume by about 90 %. It changes what the audit log records, so I left
+  it for you (PLAN.md open question 8).
+- Retention defaults: 400 days / 500,000 rows (change in `wrangler.toml`).
+- The privacy policy now says deleted records are kept up to 30 days for undo, and audit entries for 400
+  days. Please read sections 6–7 before pushing.
+- Migration numbering: Phase 7's migration is `0006` (PLAN.md said `0007` assuming Phase 6 had one).
 
 ## Needs real statements (Phase 3)
 

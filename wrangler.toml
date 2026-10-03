@@ -24,6 +24,10 @@ run_worker_first = ["/api/*"]
 # Public URL of the deployed site, no trailing slash. Used to build the OAuth
 # redirect URI and for the CSRF origin check. Overridden locally by .dev.vars.
 APP_URL = "https://pfm.arnavg.me"
+# Audit log retention, applied by the daily cron below: entries older than this many days
+# are deleted, and beyond AUDIT_MAX_ROWS the oldest are trimmed (~150 MB at the cap).
+AUDIT_RETENTION_DAYS = "400"
+AUDIT_MAX_ROWS = "500000"
 # Secrets: set in Dashboard → Worker → Settings → Variables and Secrets (type Secret),
 # or with `npx wrangler secret put <NAME>`. Never commit them.
 #   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
@@ -41,6 +45,11 @@ port = 8788
 # Without this, `wrangler dev` rewrites local requests to the production host in
 # `routes`, which breaks the CSRF origin check and the OAuth redirect locally.
 host = "localhost:8788"
+
+# 21:30 UTC = 03:00 IST. Runs the retention job in server/lib/retention.ts.
+# Test locally with `npx wrangler dev --test-scheduled`, then open /__scheduled.
+[triggers]
+crons = ["30 21 * * *"]
 
 [observability]
 enabled = true

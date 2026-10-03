@@ -111,7 +111,7 @@ import { SITE } from '../site';
         <li>All traffic is encrypted with HTTPS.</li>
         <li>Sign-in uses Google OAuth. Session tokens are random, stored only as a one-way hash, and kept in cookies that page scripts cannot read.</li>
         <li>Every request checks that you are signed in, still have access, and can only reach your own records.</li>
-        <li>The audit log is append-only, so entries cannot be edited or deleted.</li>
+        <li>The audit log is append-only: entries cannot be edited, and nothing in the app can delete them. Only the automatic daily clean-up described in section 7 removes old entries.</li>
       </ul>
       <p>No system is perfectly secure, but we work to protect your information and will act promptly on any issue.</p>
 
@@ -129,8 +129,9 @@ import { SITE } from '../site';
         </li>
         <li>If an owner removes your access, you are signed out and your records are kept so access can be restored, unless you or the owner delete the account.</li>
         <li>
-          Audit log entries are kept after account deletion as a security record. They contain no financial data. You
-          can ask for entries linked to you to be removed by contacting us.
+          Audit log entries are kept for 400 days, including after account deletion, as a security record, and are
+          then deleted automatically (sooner only if the log ever grows beyond 500,000 entries, oldest first). They
+          contain no financial data. You can ask for entries linked to you to be removed by contacting us.
         </li>
         <li>You can also revoke the app’s access to your Google account at any time at <a href="https://myaccount.google.com/permissions" rel="noopener noreferrer">myaccount.google.com/permissions</a>.</li>
       </ul>
