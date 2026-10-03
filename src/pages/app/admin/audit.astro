@@ -1,36 +1,45 @@
 ---
+import Button from '../../../components/ui/Button.astro';
+import Card from '../../../components/ui/Card.astro';
+import Field from '../../../components/ui/Field.astro';
+import Select from '../../../components/ui/Select.astro';
+import Skeleton from '../../../components/ui/Skeleton.astro';
 import AppShell from '../../../layouts/AppShell.astro';
 ---
 
 <AppShell title="Audit log" heading="Audit log" subtitle="Every action by every user. Entries cannot be edited or deleted.">
+  <Button slot="actions" class="filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="audit-filters">Filters</Button>
+
   <div class="stack">
     <p id="not-owner" class="card" hidden>Only owners can view the audit log.</p>
 
-    <form id="audit-filters" class="card form-grid" role="search">
-      <label>User<select name="user_id" id="audit-user"><option value="">Everyone</option></select></label>
-      <label>Activity<select name="action" id="audit-action"><option value="">All activity</option></select></label>
-      <label>Result
-        <select name="outcome">
-          <option value="">Any result</option>
-          <option value="success">Success</option>
-          <option value="failure">Failure</option>
-          <option value="denied">Denied</option>
-        </select>
-      </label>
-      <label>From<input name="from" type="date" /></label>
-      <label>To<input name="to" type="date" /></label>
-      <div class="row"><button class="btn" type="submit">Apply</button><button class="btn btn-ghost" type="reset">Clear</button></div>
+    <form id="audit-filters" class="card filters" role="search">
+      <Select label="User" name="user_id" id="audit-user" options={[{ value: '', label: 'Everyone' }]} />
+      <Select label="Activity" name="action" id="audit-action" options={[{ value: '', label: 'All activity' }]} />
+      <Select
+        label="Result"
+        name="outcome"
+        options={[
+          { value: '', label: 'Any result' },
+          { value: 'success', label: 'Success' },
+          { value: 'failure', label: 'Failure' },
+          { value: 'denied', label: 'Denied' },
+        ]}
+      />
+      <Field label="From" name="from" type="date" />
+      <Field label="To" name="to" type="date" />
+      <Button variant="ghost" type="reset">Clear</Button>
     </form>
 
-    <section class="card">
-      <div class="table-wrap">
-        <table>
+    <Card>
+      <div class="table-wrap slot-table">
+        <table class="table-cards">
           <thead id="audit-head"></thead>
-          <tbody id="audit-rows"></tbody>
+          <tbody id="audit-rows"><tr><td><Skeleton variant="row" count={6} /></td></tr></tbody>
         </table>
       </div>
-      <div class="row"><span class="spacer"></span><button class="btn btn-sm" id="more" type="button" hidden>Load older</button></div>
-    </section>
+      <div class="form-actions"><Button size="sm" id="more" hidden>Load older</Button></div>
+    </Card>
   </div>
 </AppShell>
 

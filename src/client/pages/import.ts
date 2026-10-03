@@ -1,10 +1,12 @@
 import { patch, post } from '../api';
 import { Categorizer } from '../categorize';
-import { $, categoryOptions, errorMessage, formValues, h, replace, run, toast } from '../dom';
-import { fmtDate, inr } from '../format';
+import { $, categoryOptions, errorMessage, formValues, h, replace, run } from '../dom';
+import { fmtDate, inr, signedInr } from '../format';
 import type { AccountType, Bank, ParsedRow, SkippedRow } from '../parsers/statement';
 import { loadCategories } from '../shell';
 import type { Category, NewTransaction } from '../types';
+import { td } from '../ui/table';
+import { toast } from '../ui/toast';
 
 type Match = { id: number; date: string; description: string; type: 'debit' | 'credit'; account_last4: string | null };
 type Reconciled = { status: 'new' | 'duplicate' | 'changed'; match?: Match; changes?: string[] };
@@ -32,7 +34,7 @@ function updateSaveLabel() {
 
 function statusLabel(d: Draft) {
   if (d.status === 'duplicate') return h('span', { class: 'badge' }, 'Already imported');
-  if (d.status === 'changed') return h('span', { class: 'badge outcome-failure' }, 'Stored with different details, see above');
+  if (d.status === 'changed') return h('span', { class: 'badge badge-warning' }, 'Stored with different details, see above');
   return null;
 }
 
@@ -79,7 +81,7 @@ function renderCorrections() {
         if (c === 'type') return `${m.type} → ${d.type}`;
         return `account ••${m.account_last4 ?? '—'} → ••${context?.last4 ?? '—'}`;
       });
-      return h('li', { class: 'row' }, box, h('span', null, `${inr(d.amount)} · ${diffs.join('; ')}`));
+      return h('li', { class: 'row' }, h('label', { class: 'check' }, box), h('span', null, `${inr(d.amount)} · ${diffs.join('; ')}`));
     }),
   );
 }
@@ -105,11 +107,11 @@ function render() {
       const select = h('select', { 'aria-label': 'Category' }, ...categoryOptions(categories, d.category_id));
       select.addEventListener('change', () => (d.category_id = select.value ? Number(select.value) : null));
       tr.append(
-        h('td', null, box),
-        h('td', { class: 'num small' }, fmtDate(d.date)),
-        h('td', { class: 'desc' }, d.description, statusLabel(d) && h('div', null, statusLabel(d)), d.note && h('div', { class: 'small spend' }, d.note)),
-        h('td', null, select),
-        h('td', { class: `right num ${d.type === 'credit' ? 'income' : ''}` }, `${d.type === 'credit' ? '+' : '−'}${inr(d.amount)}`),
+        td({ role: 'check' }, h('label', { class: 'check' }, box)),
+        td({ role: 'meta', class: 'num' }, fmtDate(d.date)),
+        td({ role: 'primary', class: 'desc' }, d.description, statusLabel(d) && h('div', null, statusLabel(d)), d.note && h('div', { class: 'small spend' }, d.note)),
+        td({ label: 'Category' }, select),
+        td({ role: 'amount', class: `right num ${d.type === 'credit' ? 'income' : ''}` }, signedInr(d.amount, d.type)),
       );
       return tr;
     }),
@@ -119,11 +121,42 @@ function render() {
   preview.hidden = false;
 }
 
+const fileInput = $<HTMLInputElement>('#file-input');
+const dropzone = $('#dropzone');
+const DEFAULT_FILE_TEXT = $('#file-name').textContent ?? '';
+
+function fileChosen() {
+  const file = fileInput.files?.[0];
+  $('#file-name').textContent = file ? file.name : DEFAULT_FILE_TEXT;
+  if (file) form.requestSubmit();
+}
+fileInput.addEventListener('change', fileChosen);
+for (const type of ['dragenter', 'dragover'] as const) {
+  dropzone.addEventListener(type, (e) => {
+    e.preventDefault();
+    dropzone.classList.add('is-over');
+  });
+}
+for (const type of ['dragleave', 'drop'] as const) dropzone.addEventListener(type, () => dropzone.classList.remove('is-over'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const file = e.dataTransfer?.files[0];
+  if (!file) return;
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  fileInput.files = dt.files;
+  fileChosen();
+});
+
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   const v = formValues(form);
-  const file = ($<HTMLInputElement>('input[type=file]', form).files ?? [])[0];
-  if (!file) return toast('Choose a statement file first', 'error');
+  const file = (fileInput.files ?? [])[0];
+  if (!file) {
+    toast('Choose a statement file first', 'error');
+    fileInput.focus();
+    return;
+  }
 
   run($<HTMLButtonElement>('#parse-btn'), async () => {
     // SheetJS is large, so the parser is only downloaded on this page, when needed.
@@ -159,11 +192,14 @@ allBox.addEventListener('change', () => {
   render();
 });
 
-$('#discard').addEventListener('click', () => {
+function resetImport() {
   drafts = [];
   preview.hidden = true;
   form.reset();
-});
+  $('#file-name').textContent = DEFAULT_FILE_TEXT;
+}
+
+$('#discard').addEventListener('click', resetImport);
 
 fixBtn.addEventListener('click', () =>
   run(fixBtn, async () => {
@@ -204,8 +240,6 @@ saveBtn.addEventListener('click', () =>
       }));
     const res = await post<{ inserted: number; skipped: number }>('/transactions/bulk', rows);
     toast(`Imported ${res.inserted}${res.skipped ? `, skipped ${plural(res.skipped, 'duplicate')}` : ''}`);
-    drafts = [];
-    preview.hidden = true;
-    form.reset();
+    resetImport();
   }).catch((err) => toast(errorMessage(err), 'error')),
 );

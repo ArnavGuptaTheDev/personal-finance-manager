@@ -1,4 +1,8 @@
 ---
+import Button from '../../../components/ui/Button.astro';
+import Card from '../../../components/ui/Card.astro';
+import Field from '../../../components/ui/Field.astro';
+import Table from '../../../components/ui/Table.astro';
 import AppShell from '../../../layouts/AppShell.astro';
 ---
 
@@ -6,26 +10,32 @@ import AppShell from '../../../layouts/AppShell.astro';
   <div class="stack">
     <p id="not-owner" class="card" hidden>Only owners can manage access.</p>
 
-    <form id="grant-form" class="card form-grid">
-      <label>Google email to invite<input name="email" type="email" required maxlength="254" autocomplete="off" placeholder="friend@gmail.com" /></label>
-      <label>Note (optional)<input name="note" maxlength="200" placeholder="e.g. Sister" /></label>
-      <div><button class="btn btn-primary" type="submit" id="grant-btn">Give access</button></div>
+    <form id="grant-form" class="card form">
+      <div class="form-inline">
+        <Field label="Google email to invite" name="email" type="email" required maxlength="254" autocomplete="off" placeholder="friend@gmail.com" />
+        <Field label="Note (optional)" name="note" maxlength="200" placeholder="e.g. Sister" />
+        <Button variant="primary" type="submit">Give access</Button>
+      </div>
       <p class="muted small">
         Each person only ever sees their own data. As an owner you can see their activity in the audit log, never their
         transactions or balances.
       </p>
     </form>
 
-    <section class="card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Person</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Access from</th><th></th></tr>
-          </thead>
-          <tbody id="user-rows"></tbody>
-        </table>
-      </div>
-    </section>
+    <Card>
+      <Table
+        bodyId="user-rows"
+        skeleton={3}
+        columns={[
+          { label: 'Person' },
+          { label: 'Role' },
+          { label: 'Status' },
+          { label: 'Last sign-in' },
+          { label: 'Access from' },
+          { label: 'Actions', hidden: true, class: 'shrink' },
+        ]}
+      />
+    </Card>
   </div>
 </AppShell>
 

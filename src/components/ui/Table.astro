@@ -1,0 +1,40 @@
+---
+// A table whose body is filled by a page script. Skeleton rows reserve the space
+// until data arrives. `cards` stacks rows into cards under 640 px.
+type Column = { label: string; class?: string; hidden?: boolean; /** Renders a select-all checkbox with this id. */ checkId?: string };
+interface Props {
+  columns: Column[];
+  bodyId: string;
+  headId?: string;
+  cards?: boolean;
+  skeleton?: number;
+  footId?: string;
+}
+const { columns, bodyId, headId, cards = true, skeleton = 6, footId } = Astro.props;
+---
+
+<div class="table-wrap">
+  <table class:list={[cards && 'table-cards']}>
+    <thead id={headId}>
+      <tr>
+        {columns.map((c) => (
+          <th class={c.class}>
+            {c.checkId ? <input type="checkbox" id={c.checkId} aria-label={c.label} /> : c.hidden ? <span class="visually-hidden">{c.label}</span> : c.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody id={bodyId}>
+      {
+        Array.from({ length: skeleton }, () => (
+          <tr>
+            <td colspan={columns.length}>
+              <span class="skeleton skeleton-row" />
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+    {footId && <tfoot id={footId} />}
+  </table>
+</div>

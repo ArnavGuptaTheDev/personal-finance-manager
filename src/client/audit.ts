@@ -1,6 +1,7 @@
 // Human-readable rendering of audit log entries (shared by Settings and Admin).
 import { h } from './dom';
 import type { AuditEntry } from './types';
+import { td } from './ui/table';
 
 const LABELS: Record<string, string> = {
   'auth.login_start': 'Started sign-in',
@@ -22,6 +23,8 @@ const LABELS: Record<string, string> = {
   'category.delete': 'Deleted a category',
   'category.rule_create': 'Added a categorization rule',
   'category.rule_delete': 'Removed a categorization rule',
+  'category.restore': 'Restored a deleted category',
+  'category.rule_restore': 'Restored a categorization rule',
 
   'transaction.list': 'Viewed transactions',
   'transaction.create': 'Added a transaction',
@@ -30,27 +33,35 @@ const LABELS: Record<string, string> = {
   'transaction.reconcile': 'Checked a statement against existing transactions',
   'transaction.update': 'Edited a transaction',
   'transaction.delete': 'Deleted a transaction',
+  'transaction.restore': 'Restored a deleted transaction',
+  'transaction.bulk_delete': 'Deleted several transactions',
+  'transaction.bulk_restore': 'Restored several transactions',
 
   'summary.view': 'Viewed the dashboard',
   'budget.list': 'Viewed budgets',
   'budget.set': 'Set a budget',
   'budget.delete': 'Removed a budget',
+  'budget.restore': 'Restored a budget',
 
   'person.list': 'Viewed people',
   'person.create': 'Added a person',
   'person.update': 'Renamed a person',
   'person.delete': 'Deleted a person',
+  'person.restore': 'Restored a person',
   'loan.list': 'Viewed loans',
   'loan.create': 'Added a loan',
   'loan.update': 'Edited a loan',
   'loan.delete': 'Deleted a loan',
   'loan.payment_create': 'Recorded a loan payment',
   'loan.payment_delete': 'Deleted a loan payment',
+  'loan.restore': 'Restored a loan',
+  'loan.payment_restore': 'Restored a loan payment',
 
   'emi.list': 'Viewed EMIs',
   'emi.create': 'Added an EMI',
   'emi.update': 'Edited an EMI',
   'emi.delete': 'Deleted an EMI',
+  'emi.restore': 'Restored an EMI',
 
   'admin.users_view': 'Viewed users & access',
   'admin.access_grant': 'Granted access',
@@ -80,13 +91,13 @@ function browser(ua: string | null): string {
 }
 
 export function auditRow(e: AuditEntry, showUser: boolean): HTMLTableRowElement {
-  const outcome = h('span', { class: `badge outcome-${e.outcome}` }, e.outcome);
+  const tone = { success: 'badge-positive', failure: 'badge-warning', denied: 'badge-negative' }[e.outcome];
   return h('tr', null,
-    h('td', { class: 'num small' }, fmtTime(e.created_at)),
-    showUser && h('td', { class: 'small' }, e.user_email ?? h('span', { class: 'muted' }, 'anonymous')),
-    h('td', null, actionLabel(e.action), h('div', { class: 'muted small' }, describe(e))),
-    h('td', null, outcome),
-    h('td', { class: 'small muted' },
+    td({ role: 'meta', class: 'num' }, fmtTime(e.created_at)),
+    showUser && td({ label: 'User', class: 'small' }, e.user_email ?? h('span', { class: 'muted' }, 'anonymous')),
+    td({ role: 'primary' }, actionLabel(e.action), h('span', { class: 'cell-sub' }, describe(e))),
+    td({ role: 'amount' }, h('span', { class: `badge ${tone}` }, e.outcome)),
+    td({ role: 'meta', class: 'small muted' },
       [e.ip, e.country].filter(Boolean).join(' · '),
       h('div', null, browser(e.user_agent)),
     ),

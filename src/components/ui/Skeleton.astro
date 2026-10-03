@@ -1,0 +1,10 @@
+---
+interface Props {
+  variant?: 'text' | 'value' | 'row' | 'block';
+  count?: number;
+  class?: string;
+}
+const { variant = 'text', count = 1, class: extra } = Astro.props;
+---
+
+{Array.from({ length: count }, () => <span class:list={['skeleton', `skeleton-${variant}`, extra]} aria-hidden="true" />)}

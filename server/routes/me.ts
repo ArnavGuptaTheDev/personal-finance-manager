@@ -27,16 +27,16 @@ meRoutes.get('/export', async (c) => {
   const q = (sql: string) => c.env.DB.prepare(sql).bind(uid);
   const [user, categories, keywords, transactions, budgets, people, loans, payments, emis] = await c.env.DB.batch([
     q('SELECT email, name, created_at FROM users WHERE id = ?'),
-    q('SELECT id, name, kind FROM categories WHERE user_id = ?'),
-    q('SELECT category_id, keyword, regex FROM category_keywords WHERE user_id = ?'),
+    q('SELECT id, name, kind FROM categories WHERE user_id = ? AND deleted_at IS NULL'),
+    q('SELECT category_id, keyword, regex FROM category_keywords WHERE user_id = ? AND deleted_at IS NULL'),
     q(`SELECT date, amount_minor / 100.0 AS amount, type, description, category_id, bank, account_type,
-              account_last4, remark FROM transactions WHERE user_id = ? ORDER BY date`),
-    q('SELECT category_id, amount_minor / 100.0 AS amount FROM budgets WHERE user_id = ?'),
-    q('SELECT id, name, note FROM people WHERE user_id = ?'),
-    q('SELECT id, person_id, direction, title, amount_minor / 100.0 AS amount, date, note FROM loans WHERE user_id = ?'),
-    q('SELECT loan_id, amount_minor / 100.0 AS amount, date, note FROM loan_payments WHERE user_id = ?'),
+              account_last4, remark FROM transactions WHERE user_id = ? AND deleted_at IS NULL ORDER BY date`),
+    q('SELECT category_id, amount_minor / 100.0 AS amount FROM budgets WHERE user_id = ? AND deleted_at IS NULL'),
+    q('SELECT id, name, note FROM people WHERE user_id = ? AND deleted_at IS NULL'),
+    q('SELECT id, person_id, direction, title, amount_minor / 100.0 AS amount, date, note FROM loans WHERE user_id = ? AND deleted_at IS NULL'),
+    q('SELECT loan_id, amount_minor / 100.0 AS amount, date, note FROM loan_payments WHERE user_id = ? AND deleted_at IS NULL'),
     q(`SELECT title, lender, installment_minor / 100.0 AS installment, frequency_unit, frequency_value,
-              start_date, end_date, note FROM emis WHERE user_id = ?`),
+              start_date, end_date, note FROM emis WHERE user_id = ? AND deleted_at IS NULL`),
   ]);
   c.header('Content-Disposition', 'attachment; filename="personal-finance-export.json"');
   return c.json({

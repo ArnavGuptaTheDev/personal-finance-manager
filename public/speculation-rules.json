@@ -1,0 +1,8 @@
+{
+  "prefetch": [
+    {
+      "where": { "and": [{ "href_matches": "/app/*" }, { "not": { "selector_matches": "[download]" } }] },
+      "eagerness": "moderate"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+---
+// A labelled control with a hint and an inline error slot (filled by client/ui/form.ts).
+// Without slotted content it renders an <input> with the remaining props.
+import type { HTMLAttributes } from 'astro/types';
+
+type Props = HTMLAttributes<'input'> & {
+  label: string;
+  hint?: string;
+  /** Money input: accepts "1,234.50", shows a decimal keypad on phones. */
+  money?: boolean;
+  fieldClass?: string;
+  hideLabel?: boolean;
+};
+const { label, hint, money, fieldClass, hideLabel, ...rest } = Astro.props;
+const input: Record<string, unknown> = money ? { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'data-money': '', ...rest } : rest;
+---
+
+<label class:list={['field', fieldClass]}>
+  <span class:list={[hideLabel && 'visually-hidden']}>{label}</span>
+  {Astro.slots.has('default') ? <slot /> : <input {...input} />}
+  {hint && <span class="field-hint">{hint}</span>}
+  <span class="field-error"></span>
+</label>

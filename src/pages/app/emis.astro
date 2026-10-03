@@ -1,47 +1,71 @@
 ---
+import Button from '../../components/ui/Button.astro';
+import Card from '../../components/ui/Card.astro';
+import Field from '../../components/ui/Field.astro';
+import Skeleton from '../../components/ui/Skeleton.astro';
+import Table from '../../components/ui/Table.astro';
 import AppShell from '../../layouts/AppShell.astro';
 ---
 
 <AppShell title="EMIs" heading="EMIs" subtitle="Recurring loan instalments and what's left to pay">
+  <Button slot="actions" variant="primary" id="add-emi">+ Add EMI</Button>
+
   <div class="stack">
-    <section class="grid grid-kpi">
-      <div class="card kpi"><div class="label">Monthly outgo (approx.)</div><div class="value spend" id="monthly">—</div></div>
-      <div class="card kpi"><div class="label">Remaining to pay</div><div class="value" id="remaining">—</div></div>
+    <section class="grid grid-kpi cols-2">
+      <div class="card kpi"><div class="label">Monthly outgo (approx.)</div><div class="value spend" id="monthly"><Skeleton variant="value" /></div></div>
+      <div class="card kpi"><div class="label">Remaining to pay</div><div class="value" id="remaining"><Skeleton variant="value" /></div></div>
     </section>
 
-    <form id="emi-form" class="card form-grid">
-      <label>Loan name<input name="title" required maxlength="120" placeholder="e.g. Car loan" /></label>
-      <label>Lender<input name="lender" maxlength="120" placeholder="e.g. HDFC Bank" /></label>
-      <label>Instalment (₹)<input name="installment" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
-      <label>Every
-        <span class="row">
-          <input name="frequency_value" type="number" min="1" max="365" value="1" required class="every" aria-label="Interval" />
-          <select name="frequency_unit" aria-label="Unit">
-            <option value="months">month(s)</option>
-            <option value="weeks">week(s)</option>
-            <option value="days">day(s)</option>
-            <option value="years">year(s)</option>
-          </select>
-        </span>
-      </label>
-      <label>First instalment<input name="start_date" type="date" required /></label>
-      <label>Last instalment<input name="end_date" type="date" required /></label>
-      <div><button class="btn btn-primary" type="submit" id="emi-save">Add EMI</button></div>
-    </form>
-
-    <section class="card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Loan</th><th class="right">Instalment</th><th>Progress</th><th>Next due</th><th class="right">Remaining</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="emi-rows"></tbody>
-        </table>
-      </div>
-    </section>
+    <Card>
+      <Table
+        bodyId="emi-rows"
+        skeleton={3}
+        columns={[
+          { label: 'Loan' },
+          { label: 'Instalment', class: 'right' },
+          { label: 'Progress' },
+          { label: 'Next due' },
+          { label: 'Remaining', class: 'right' },
+          { label: 'Actions', hidden: true, class: 'shrink' },
+        ]}
+      />
+    </Card>
   </div>
+
+  <dialog id="emi-dialog" class="dialog-form" aria-labelledby="emi-dialog-title">
+    <form id="emi-form" class="form">
+      <h2 id="emi-dialog-title">Add EMI</h2>
+      <div class="form-row">
+        <Field label="Loan name" name="title" required maxlength="120" placeholder="e.g. Car loan" />
+        <Field label="Lender" name="lender" maxlength="120" placeholder="e.g. HDFC Bank" />
+      </div>
+      <div class="form-row keep-2">
+        <Field label="Instalment (₹)" name="installment" money required placeholder="0.00" />
+        <label class="field">
+          <span>Every</span>
+          <span class="field-inline">
+            <input name="frequency_value" type="number" min="1" max="365" value="1" required class="every" aria-label="Interval" />
+            <select name="frequency_unit" aria-label="Unit">
+              <option value="months">month(s)</option>
+              <option value="weeks">week(s)</option>
+              <option value="days">day(s)</option>
+              <option value="years">year(s)</option>
+            </select>
+          </span>
+          <span class="field-error"></span>
+        </label>
+      </div>
+      <div class="form-row keep-2">
+        <Field label="First instalment" name="start_date" type="date" required />
+        <Field label="Last instalment" name="end_date" type="date" required />
+      </div>
+      <Field label="Note" name="note" maxlength="500" placeholder="Optional" />
+      <div class="form-actions">
+        <Button data-close>Cancel</Button>
+        <Button variant="primary" type="submit">Save</Button>
+      </div>
+    </form>
+  </dialog>
 </AppShell>
 
 <script>
@@ -49,5 +73,6 @@ import AppShell from '../../layouts/AppShell.astro';
 </script>
 
 <style>
-  .every { width: 5rem; }
+  .every { width: 5rem; flex: none; }
+  .field-inline select { flex: 1; }
 </style>

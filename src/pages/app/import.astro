@@ -1,31 +1,48 @@
 ---
+import Button from '../../components/ui/Button.astro';
+import Card from '../../components/ui/Card.astro';
+import Select from '../../components/ui/Select.astro';
+import Table from '../../components/ui/Table.astro';
 import AppShell from '../../layouts/AppShell.astro';
 ---
 
-<AppShell title="Import" heading="Import a statement" subtitle="Parsed on your device — the file itself is never uploaded">
+<AppShell title="Import" heading="Import a statement" subtitle="Parsed on your device; the file itself is never uploaded">
   <div class="stack">
-    <form id="parse-form" class="card form-grid">
-      <label>Bank
-        <select name="bank">
-          <option value="hdfc">HDFC Bank</option>
-          <option value="icici">ICICI Bank</option>
-        </select>
+    <form id="parse-form" class="card form">
+      <div class="form-row keep-2">
+        <Select
+          label="Bank"
+          name="bank"
+          options={[
+            { value: 'hdfc', label: 'HDFC Bank' },
+            { value: 'icici', label: 'ICICI Bank' },
+          ]}
+        />
+        <Select
+          label="Account"
+          name="account"
+          options={[
+            { value: 'savings', label: 'Savings account' },
+            { value: 'credit_card', label: 'Credit card' },
+          ]}
+        />
+      </div>
+      <label class="dropzone" id="dropzone">
+        <input name="file" type="file" accept=".csv,.xls,.xlsx" id="file-input" />
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 15V3m0 0l-4 4m4-4l4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path>
+        </svg>
+        <span class="file-name" id="file-name">Drop your statement here, or choose a file</span>
+        <span class="muted small">Excel (.xls, .xlsx) or CSV, downloaded from net banking</span>
       </label>
-      <label>Account
-        <select name="account">
-          <option value="savings">Savings account</option>
-          <option value="credit_card">Credit card</option>
-        </select>
-      </label>
-      <label>Statement file<input name="file" type="file" accept=".csv,.xls,.xlsx" required /></label>
-      <div><button class="btn btn-primary" id="parse-btn" type="submit">Read statement</button></div>
-      <p class="muted small" id="hint">
-        Download the statement from net banking as Excel (.xls) or CSV. Re-importing an overlapping period is safe: duplicates are skipped.
-      </p>
+      <p class="muted small hint">Re-importing an overlapping period is safe: transactions already stored are recognised and skipped.</p>
+      <div class="form-actions">
+        <Button variant="primary" type="submit" id="parse-btn">Read statement</Button>
+      </div>
     </form>
 
-    <section class="card" id="preview" hidden>
-      <div class="row">
+    <Card id="preview" hidden>
+      <div class="card-head">
         <h2>Review</h2>
         <span class="spacer"></span>
         <span class="muted small" id="preview-meta"></span>
@@ -39,31 +56,33 @@ import AppShell from '../../layouts/AppShell.astro';
           them again.
         </p>
         <ul id="correction-list" class="plain-list small"></ul>
-        <div class="row"><span class="spacer"></span><button class="btn" id="apply-corrections" type="button">Correct selected</button></div>
+        <div class="form-actions"><Button id="apply-corrections">Correct selected</Button></div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th><input type="checkbox" id="all" checked aria-label="Select all" /></th>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Category</th>
-              <th class="right">Amount</th>
-            </tr>
-          </thead>
-          <tbody id="preview-rows"></tbody>
-        </table>
+      <Table
+        bodyId="preview-rows"
+        skeleton={0}
+        columns={[
+          { label: 'Select all', checkId: 'all', class: 'shrink' },
+          { label: 'Date', class: 'shrink' },
+          { label: 'Description' },
+          { label: 'Category' },
+          { label: 'Amount', class: 'right' },
+        ]}
+      />
+      <div class="form-actions preview-actions">
+        <Button id="discard">Discard</Button>
+        <Button variant="primary" id="save">Import</Button>
       </div>
-      <div class="row">
-        <span class="spacer"></span>
-        <button class="btn" id="discard" type="button">Discard</button>
-        <button class="btn btn-primary" id="save" type="button">Import</button>
-      </div>
-    </section>
+    </Card>
   </div>
 </AppShell>
 
 <script>
   import '../../client/pages/import';
 </script>
+
+<style>
+  .hint { margin: 0; }
+  .corrections { margin: var(--space-3) 0; box-shadow: none; background: var(--bg); }
+  .preview-actions { margin-top: var(--space-4); }
+</style>

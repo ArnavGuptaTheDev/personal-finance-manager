@@ -1,41 +1,82 @@
 ---
+import Button from '../../components/ui/Button.astro';
+import Card from '../../components/ui/Card.astro';
+import Field from '../../components/ui/Field.astro';
+import Select from '../../components/ui/Select.astro';
+import Skeleton from '../../components/ui/Skeleton.astro';
+import Tabs from '../../components/ui/Tabs.astro';
 import AppShell from '../../layouts/AppShell.astro';
 ---
 
 <AppShell title="Loans" heading="Loans" subtitle="Money lent to or borrowed from people you know">
+  <Button slot="actions" variant="primary" id="add-loan">+ Add loan</Button>
+
   <div class="stack">
-    <section class="grid grid-kpi">
-      <div class="card kpi"><div class="label">Owed to you</div><div class="value income" id="owed-to-me">—</div></div>
-      <div class="card kpi"><div class="label">You owe</div><div class="value spend" id="i-owe">—</div></div>
+    <section class="grid grid-kpi cols-2">
+      <div class="card kpi"><div class="label">Owed to you</div><div class="value income" id="owed-to-me"><Skeleton variant="value" /></div></div>
+      <div class="card kpi"><div class="label">You owe</div><div class="value spend" id="i-owe"><Skeleton variant="value" /></div></div>
     </section>
 
-    <form id="loan-form" class="card form-grid">
-      <label>Person
-        <select name="person_id" id="loan-person" required></select>
-      </label>
-      <label>Direction
-        <select name="direction">
-          <option value="lent">I lent money</option>
-          <option value="borrowed">I borrowed money</option>
-        </select>
-      </label>
-      <label>What for<input name="title" required maxlength="120" placeholder="e.g. Trip advance" /></label>
-      <label>Amount (₹)<input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
-      <label>Date<input name="date" type="date" required /></label>
-      <div><button class="btn btn-primary" type="submit" id="loan-save">Add loan</button></div>
-    </form>
+    <div>
+      <Tabs
+        id="loan-tabs"
+        label="Show loans"
+        tabs={[
+          { value: 'active', label: 'Active' },
+          { value: 'settled', label: 'Settled' },
+          { value: 'all', label: 'All' },
+        ]}
+      />
+      <div id="loan-list" class="stack slot-short"><Skeleton variant="row" count={3} /></div>
+    </div>
 
-    <div id="loan-list" class="stack"></div>
-
-    <section class="card">
-      <h2>People</h2>
-      <form id="person-form" class="row">
-        <input name="name" required maxlength="80" placeholder="Name" aria-label="Name" />
-        <button class="btn" type="submit" id="person-save">Add person</button>
+    <Card title="People">
+      <form id="person-form" class="form-inline">
+        <Field label="Name" hideLabel name="name" required maxlength="80" placeholder="Name" />
+        <Button type="submit">Add person</Button>
       </form>
       <ul id="people" class="plain-list"></ul>
-    </section>
+    </Card>
   </div>
+
+  <dialog id="loan-dialog" class="dialog-form" aria-labelledby="loan-dialog-title">
+    <form id="loan-form" class="form">
+      <h2 id="loan-dialog-title">Add loan</h2>
+      <div class="form-row">
+        <Select label="Person" name="person_id" id="loan-person" required />
+        <Select
+          label="Direction"
+          name="direction"
+          options={[
+            { value: 'lent', label: 'I lent money' },
+            { value: 'borrowed', label: 'I borrowed money' },
+          ]}
+        />
+      </div>
+      <Field label="What for" name="title" required maxlength="120" placeholder="e.g. Trip advance" />
+      <div class="form-row keep-2">
+        <Field label="Amount (₹)" name="amount" money required placeholder="0.00" />
+        <Field label="Date" name="date" type="date" required />
+      </div>
+      <Field label="Note" name="note" maxlength="500" placeholder="Optional" />
+      <div class="form-actions">
+        <Button data-close>Cancel</Button>
+        <Button variant="primary" type="submit">Save</Button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="person-dialog" class="dialog-form" aria-labelledby="person-dialog-title">
+    <form id="person-edit" class="form">
+      <h2 id="person-dialog-title">Edit person</h2>
+      <Field label="Name" name="name" required maxlength="80" />
+      <Field label="Note" name="note" maxlength="300" placeholder="Optional" />
+      <div class="form-actions">
+        <Button data-close>Cancel</Button>
+        <Button variant="primary" type="submit">Save</Button>
+      </div>
+    </form>
+  </dialog>
 </AppShell>
 
 <script>

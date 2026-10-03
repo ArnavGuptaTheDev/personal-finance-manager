@@ -20,6 +20,8 @@ const ACTIONS: Record<string, string> = {
   'DELETE /api/categories/:id': 'category.delete',
   'POST /api/categories/:id/keywords': 'category.rule_create',
   'DELETE /api/categories/keywords/:id': 'category.rule_delete',
+  'POST /api/categories/:id/restore': 'category.restore',
+  'POST /api/categories/keywords/:id/restore': 'category.rule_restore',
 
   'GET /api/transactions': 'transaction.list',
   'POST /api/transactions': 'transaction.create',
@@ -28,17 +30,22 @@ const ACTIONS: Record<string, string> = {
   'POST /api/transactions/reconcile': 'transaction.reconcile',
   'PATCH /api/transactions/:id': 'transaction.update',
   'DELETE /api/transactions/:id': 'transaction.delete',
+  'POST /api/transactions/:id/restore': 'transaction.restore',
+  'POST /api/transactions/delete': 'transaction.bulk_delete',
+  'POST /api/transactions/restore': 'transaction.bulk_restore',
 
   'GET /api/summary': 'summary.view',
 
   'GET /api/budgets': 'budget.list',
   'PUT /api/budgets': 'budget.set',
   'DELETE /api/budgets/:id': 'budget.delete',
+  'POST /api/budgets/:id/restore': 'budget.restore',
 
   'GET /api/people': 'person.list',
   'POST /api/people': 'person.create',
   'PUT /api/people/:id': 'person.update',
   'DELETE /api/people/:id': 'person.delete',
+  'POST /api/people/:id/restore': 'person.restore',
 
   'GET /api/loans': 'loan.list',
   'POST /api/loans': 'loan.create',
@@ -46,11 +53,14 @@ const ACTIONS: Record<string, string> = {
   'DELETE /api/loans/:id': 'loan.delete',
   'POST /api/loans/:id/payments': 'loan.payment_create',
   'DELETE /api/loans/:id/payments/:paymentId': 'loan.payment_delete',
+  'POST /api/loans/:id/restore': 'loan.restore',
+  'POST /api/loans/:id/payments/:paymentId/restore': 'loan.payment_restore',
 
   'GET /api/emis': 'emi.list',
   'POST /api/emis': 'emi.create',
   'PUT /api/emis/:id': 'emi.update',
   'DELETE /api/emis/:id': 'emi.delete',
+  'POST /api/emis/:id/restore': 'emi.restore',
 
   'GET /api/admin/users': 'admin.users_view',
   'POST /api/admin/access': 'admin.access_grant',

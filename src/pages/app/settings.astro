@@ -1,78 +1,39 @@
 ---
+import Button from '../../components/ui/Button.astro';
+import Card from '../../components/ui/Card.astro';
 import AppShell from '../../layouts/AppShell.astro';
 ---
 
 <AppShell title="Settings" heading="Settings" subtitle="Your account and data">
   <div class="stack">
-    <section class="card">
-      <h2>Account</h2>
-      <p class="muted">Signed in with Google as <strong id="settings-email">…</strong> <span id="settings-role" class="badge"></span></p>
-    </section>
+    <Card title="Account">
+      <p class="muted">Signed in with Google as <strong data-user-email></strong> <span id="settings-role" class="badge"></span></p>
+    </Card>
 
-    <section class="card">
-      <h2>My activity</h2>
+    <Card title="Export your data">
+      <p class="muted">Download every transaction, category, budget, loan and EMI as a JSON file.</p>
+      <Button href="/api/me/export" download>Download export</Button>
+    </Card>
+
+    <Card title="Delete account" class="card-danger">
+      <p class="muted">Permanently deletes your account and all of your data, straight away. This cannot be undone.</p>
+      <Button variant="danger" id="delete-account">Delete my account</Button>
+    </Card>
+
+    <details class="card collapse" id="activity">
+      <summary><h2>My activity</h2></summary>
       <p class="muted small">Every action on your account is recorded. App owners can see this activity log, but not your financial data.</p>
       <div class="table-wrap">
-        <table>
+        <table class="table-cards">
           <thead id="activity-head"></thead>
           <tbody id="activity-rows"></tbody>
         </table>
       </div>
-      <div class="row"><span class="spacer"></span><button class="btn btn-sm" id="activity-more" type="button" hidden>Load older</button></div>
-    </section>
-
-    <section class="card">
-      <h2>Export your data</h2>
-      <p class="muted">Download every transaction, category, budget, loan and EMI as a JSON file.</p>
-      <a class="btn" href="/api/me/export" download>Download export</a>
-    </section>
-
-    <section class="card danger-zone">
-      <h2>Delete account</h2>
-      <p class="muted">Permanently deletes your account and all of your data. This cannot be undone.</p>
-      <button class="btn btn-danger" id="delete-account" type="button">Delete my account</button>
-    </section>
+      <div class="form-actions"><Button size="sm" id="activity-more" hidden>Load older</Button></div>
+    </details>
   </div>
 </AppShell>
 
 <script>
-  import { del, get } from '../../client/api';
-  import { auditHead, auditRow } from '../../client/audit';
-  import { $, emptyState, h, replace, run, toast } from '../../client/dom';
-  import { qs } from '../../client/format';
-  import { me } from '../../client/shell';
-  import type { AuditPage } from '../../client/types';
-
-  me.then((u) => {
-    $('#settings-email').textContent = u.email;
-    $('#settings-role').textContent = u.role === 'owner' ? 'Owner' : 'Member';
-  }).catch(() => {});
-
-  const more = $<HTMLButtonElement>('#activity-more');
-  let cursor: number | null = null;
-  async function loadActivity(append = false) {
-    const page = await get<AuditPage>(`/me/activity${qs({ limit: 50, before: append ? cursor : undefined })}`);
-    const rows = page.items.map((e) => auditRow(e, false));
-    if (append) $('#activity-rows').append(...rows);
-    else replace($('#activity-rows'), ...(rows.length ? rows : [h('tr', null, h('td', { colspan: 4 }, emptyState('No activity yet.')))]));
-    cursor = page.next_before;
-    more.hidden = cursor === null;
-  }
-  replace($('#activity-head'), auditHead(false));
-  more.addEventListener('click', () => run(more, () => loadActivity(true)));
-  loadActivity().catch(() => {});
-
-  const btn = $<HTMLButtonElement>('#delete-account');
-  btn.addEventListener('click', () =>
-    run(btn, async () => {
-      const typed = prompt('This deletes everything. Type DELETE to confirm.');
-      if (typed !== 'DELETE') return toast('Account not deleted');
-      await del('/me');
-      location.href = '/';
-    }),
-  );
+  import '../../client/pages/settings';
 </script>
-
-<style>
-  .danger-zone { border-color: var(--danger); }
-</style>

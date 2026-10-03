@@ -1,30 +1,56 @@
 ---
+import Button from '../../components/ui/Button.astro';
+import Field from '../../components/ui/Field.astro';
+import Select from '../../components/ui/Select.astro';
+import Skeleton from '../../components/ui/Skeleton.astro';
 import AppShell from '../../layouts/AppShell.astro';
+
+const kinds = [
+  { value: 'expense', label: 'Expense' },
+  { value: 'income', label: 'Income' },
+  { value: 'transfer', label: 'Transfer (excluded from totals)' },
+];
 ---
 
 <AppShell title="Categories" heading="Categories" subtitle="Rules that sort imported transactions automatically">
   <div class="stack">
-    <form id="cat-form" class="card form-grid">
-      <label>New category<input name="name" required maxlength="60" placeholder="e.g. Pets" /></label>
-      <label>Kind
-        <select name="kind">
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-          <option value="transfer">Transfer (excluded from totals)</option>
-        </select>
-      </label>
-      <div><button class="btn btn-primary" type="submit" id="cat-save">Add category</button></div>
+    <form id="cat-form" class="card form-inline">
+      <Field label="New category" name="name" required maxlength="60" placeholder="e.g. Pets" />
+      <Select label="Kind" name="kind" options={kinds} />
+      <Button variant="primary" type="submit">Add category</Button>
     </form>
 
+    <div class="row cat-tools">
+      <Field label="Search categories and rules" hideLabel type="search" id="cat-search" placeholder="Search categories and rules" fieldClass="cat-search" />
+      <Button variant="ghost" size="sm" id="toggle-all">Expand all</Button>
+    </div>
     <p class="muted small">
-      Keywords match whole words in the transaction description (case-insensitive). Regex rules are for advanced patterns and
-      are checked first. Your own rules always win over the built-in ones.
+      Keywords match whole words in the transaction description (case-insensitive). Regex rules (written as /pattern/) are
+      for advanced patterns and are checked first. Your own rules always win over the built-in ones.
     </p>
 
-    <div id="cat-list" class="grid grid-2"></div>
+    <div id="cat-list" class="grid grid-2 cat-list"><Skeleton variant="row" count={6} /></div>
   </div>
+
+  <dialog id="cat-dialog" class="dialog-form" aria-labelledby="cat-dialog-title">
+    <form id="cat-edit" class="form">
+      <h2 id="cat-dialog-title">Edit category</h2>
+      <Field label="Name" name="name" required maxlength="60" />
+      <Select label="Kind" name="kind" options={kinds} />
+      <div class="form-actions">
+        <Button data-close>Cancel</Button>
+        <Button variant="primary" type="submit">Save</Button>
+      </div>
+    </form>
+  </dialog>
 </AppShell>
 
 <script>
   import '../../client/pages/categories';
 </script>
+
+<style>
+  .cat-tools { flex-wrap: nowrap; }
+  .cat-search { flex: 1; max-width: 420px; }
+  .cat-list { align-items: start; }
+</style>

@@ -19,6 +19,7 @@ const { title, description = 'Track spending, budgets, loans and EMIs — privat
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+    <slot name="head" />
   </head>
   <body>
     <slot />

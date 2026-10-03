@@ -1,80 +1,94 @@
 import { get } from '../api';
 import { barList, monthlyBars } from '../charts';
-import { $, emptyState, errorMessage, h, replace, toast } from '../dom';
-import { fmtDate, inr, qs, rangeFor } from '../format';
+import { $, errorMessage, h, replace } from '../dom';
+import { fmtDate, inr, inrShort, qs, rangeFor, signedInr, today } from '../format';
 import type { Budget, Summary, Transaction } from '../types';
+import { linkButton } from '../ui/button';
+import { emptyState, errorState } from '../ui/table';
 
 const rangeSelect = $<HTMLSelectElement>('#range');
 
+/** KPI value: compact (₹5.7L), with the exact amount on hover. */
+function kpi(id: string, amount: number) {
+  const el = $(`#kpi-${id}`);
+  el.textContent = inrShort(amount);
+  el.title = inr(amount);
+}
+
 async function loadSummary() {
   const [from, to] = rangeFor(rangeSelect.value);
-  const s = await get<Summary>(`/summary${qs({ from, to })}`);
+  let s: Summary;
+  try {
+    s = await get<Summary>(`/summary${qs({ from, to })}`);
+  } catch (err) {
+    for (const id of ['monthly', 'by-category']) replace($(`#${id}`), errorState(errorMessage(err), () => void loadSummary()));
+    return;
+  }
 
-  $('#kpi-income').textContent = inr(s.income);
-  $('#kpi-spend').textContent = inr(s.spend);
-  const net = $('#kpi-net');
-  net.textContent = inr(s.net);
-  net.className = `value ${s.net >= 0 ? 'income' : 'spend'}`;
+  kpi('income', s.income);
+  kpi('spend', s.spend);
+  kpi('net', s.net);
+  $('#kpi-net').className = `value ${s.net >= 0 ? 'income' : 'spend'}`;
   $('#kpi-count').textContent = s.count.toLocaleString('en-IN');
-
-  const note = $('#uncat-note');
-  note.hidden = s.uncategorized === 0;
+  // The uncategorized prompt lives inside the Transactions card, so it never pushes the page down.
   replace(
-    note,
-    `${s.uncategorized} transaction${s.uncategorized === 1 ? ' is' : 's are'} uncategorized. `,
-    h('a', { href: '/app/transactions/?category=none' }, 'Review them'),
-    ' to make these numbers more useful.',
+    $('#kpi-count-sub'),
+    s.uncategorized
+      ? h('a', { href: `/app/transactions/${qs({ category: 'none', type: 'debit', from, to })}` }, `${s.uncategorized} uncategorized spend${s.uncategorized === 1 ? '' : 's'}`)
+      : '',
   );
 
   replace($('#monthly'), s.months.length ? monthlyBars(s.months) : emptyState('No transactions in this period yet.'));
 
-  const href = (id: number | null) => `/app/transactions/${qs({ category: id ?? 'none', from, to })}`;
+  const href = (id: number | null) => `/app/transactions/${qs({ category: id ?? 'none', type: 'debit', from, to })}`;
   const top = s.by_category.slice(0, 8);
   replace(
     $('#by-category'),
     top.length
-      ? barList(top.map((c) => ({ label: c.name, value: c.spend, href: href(c.category_id) })))
+      ? barList(top.map((c) => ({ label: c.name, value: c.spend, note: inrShort(c.spend), href: href(c.category_id) })))
       : emptyState('No spending in this period.'),
   );
 }
 
 async function loadBudgets() {
-  const { items } = await get<{ items: Budget[] }>('/budgets');
-  replace(
-    $('#budgets'),
-    items.length
-      ? barList(items.map((b) => ({ label: b.name, value: b.spent, max: b.amount, note: `${inr(b.spent)} / ${inr(b.amount)}` })))
-      : emptyState('No budgets yet.'),
-  );
+  try {
+    const { items } = await get<{ items: Budget[] }>(`/budgets${qs({ month: today().slice(0, 7) })}`);
+    replace(
+      $('#budgets'),
+      items.length
+        ? barList(items.map((b) => ({ label: b.name, value: b.spent, max: b.amount, note: `${inrShort(b.spent)} / ${inrShort(b.amount)}` })))
+        : emptyState('No budgets yet.', linkButton('Set a budget', '/app/budgets/', { size: 'sm' })),
+    );
+  } catch (err) {
+    replace($('#budgets'), errorState(errorMessage(err), () => void loadBudgets()));
+  }
 }
 
 async function loadRecent() {
-  const { items } = await get<{ items: Transaction[] }>('/transactions?limit=8');
-  replace(
-    $('#recent'),
-    items.length
-      ? h('div', { class: 'table-wrap' },
-          h('table', null,
-            h('tbody', null,
-              ...items.map((t) =>
-                h('tr', null,
-                  h('td', { class: 'muted small num' }, fmtDate(t.date)),
-                  h('td', { class: 'desc' }, t.description, h('div', { class: 'muted small' }, t.category_name ?? 'Uncategorized')),
-                  h('td', { class: `right num ${t.type === 'credit' ? 'income' : ''}` }, `${t.type === 'credit' ? '+' : '−'}${inr(t.amount)}`),
+  try {
+    const { items } = await get<{ items: Transaction[] }>('/transactions?limit=8');
+    replace(
+      $('#recent'),
+      items.length
+        ? h('ul', { class: 'plain-list recent-list' },
+            ...items.map((t) =>
+              h('li', null,
+                h('div', { class: 'recent-main' },
+                  h('span', { class: 'recent-desc' }, t.description),
+                  h('span', { class: `num ${t.type === 'credit' ? 'income' : ''}` }, signedInr(t.amount, t.type)),
                 ),
+                h('div', { class: 'cell-sub' }, `${fmtDate(t.date)} · ${t.category_name ?? 'Uncategorized'}`),
               ),
             ),
-          ),
-        )
-      : h('div', { class: 'empty' }, 'Nothing here yet. ', h('a', { href: '/app/import/' }, 'Import a statement'), ' to get started.'),
-  );
+          )
+        : emptyState('Nothing here yet.', linkButton('Import a statement', '/app/import/', { variant: 'primary', size: 'sm' })),
+    );
+  } catch (err) {
+    replace($('#recent'), errorState(errorMessage(err), () => void loadRecent()));
+  }
 }
 
-function guard(p: Promise<void>) {
-  p.catch((err) => toast(errorMessage(err), 'error'));
-}
-
-rangeSelect.addEventListener('change', () => guard(loadSummary()));
-guard(loadSummary());
-guard(loadBudgets());
-guard(loadRecent());
+rangeSelect.addEventListener('change', () => void loadSummary());
+void loadSummary();
+void loadBudgets();
+void loadRecent();

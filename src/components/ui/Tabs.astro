@@ -1,0 +1,20 @@
+---
+// Tab strip; wire it with bindTabs() from client/ui/tabs.ts.
+interface Props {
+  id: string;
+  label: string;
+  tabs: { value: string; label: string }[];
+  selected?: string;
+}
+const { id, label, tabs, selected = tabs[0]?.value } = Astro.props;
+---
+
+<div class="tabs" role="tablist" aria-label={label} id={id}>
+  {
+    tabs.map((t) => (
+      <button type="button" role="tab" data-value={t.value} aria-selected={t.value === selected ? "true" : "false"} tabindex={t.value === selected ? 0 : -1}>
+        {t.label}
+      </button>
+    ))
+  }
+</div>

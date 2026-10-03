@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import type { AppEnv } from '../env';
 import { fromMinor, toMinor } from '../lib/money';
+import { restore, softDelete } from '../lib/soft-delete';
 import { idParam, isoDate, money, notFound, optionalText, readJson, shortText } from '../lib/validate';
 
 export const emiRoutes = new Hono<AppEnv>();
@@ -67,11 +68,13 @@ function schedule(e: EmiRow, today: string) {
 emiRoutes.get('/', async (c) => {
   const { results } = await c.env.DB.prepare(
     `SELECT id, title, lender, installment_minor, frequency_unit, frequency_value, start_date, end_date, note
-       FROM emis WHERE user_id = ? ORDER BY end_date`,
+       FROM emis WHERE user_id = ? AND deleted_at IS NULL ORDER BY end_date`,
   )
     .bind(c.get('userId'))
     .all<EmiRow>();
-  const today = new Date().toISOString().slice(0, 10);
+  // The client sends its own calendar date; the server's UTC date is only a fallback.
+  const asked = isoDate.safeParse(c.req.query('today'));
+  const today = asked.success ? asked.data : new Date().toISOString().slice(0, 10);
   return c.json(
     results.map(({ installment_minor, ...e }) => ({
       ...e,
@@ -97,7 +100,7 @@ emiRoutes.put('/:id', async (c) => {
   const res = await c.env.DB.prepare(
     `UPDATE emis SET title = ?, lender = ?, installment_minor = ?, frequency_unit = ?, frequency_value = ?,
                      start_date = ?, end_date = ?, note = ?
-      WHERE id = ? AND user_id = ?`,
+      WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
   )
     .bind(b.title, b.lender, toMinor(b.installment), b.frequency_unit, b.frequency_value, b.start_date, b.end_date, b.note, idParam(c), c.get('userId'))
     .run();
@@ -105,8 +108,9 @@ emiRoutes.put('/:id', async (c) => {
 });
 
 emiRoutes.delete('/:id', async (c) => {
-  const res = await c.env.DB.prepare('DELETE FROM emis WHERE id = ? AND user_id = ?')
-    .bind(idParam(c), c.get('userId'))
-    .run();
-  return res.meta.changes ? c.body(null, 204) : notFound('EMI');
+  return (await softDelete(c.env.DB, 'emis', idParam(c), c.get('userId'))) ? c.body(null, 204) : notFound('EMI');
+});
+
+emiRoutes.post('/:id/restore', async (c) => {
+  return (await restore(c.env.DB, 'emis', idParam(c), c.get('userId'))) ? c.json({ ok: true }) : notFound('Deleted EMI');
 });

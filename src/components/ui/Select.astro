@@ -1,0 +1,17 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+type Option = { value: string; label: string; selected?: boolean };
+type Props = HTMLAttributes<'select'> & { label: string; options?: Option[]; hint?: string; fieldClass?: string; hideLabel?: boolean };
+const { label, options = [], hint, fieldClass, hideLabel, ...rest } = Astro.props;
+---
+
+<label class:list={['field', fieldClass]}>
+  <span class:list={[hideLabel && 'visually-hidden']}>{label}</span>
+  <select {...rest}>
+    {options.map((o) => <option value={o.value} selected={o.selected}>{o.label}</option>)}
+    <slot />
+  </select>
+  {hint && <span class="field-hint">{hint}</span>}
+  <span class="field-error"></span>
+</label>

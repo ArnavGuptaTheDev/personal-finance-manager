@@ -1,5 +1,6 @@
 // Tiny DOM helpers. Text is always inserted as text nodes (never innerHTML), so
 // bank descriptions or names containing markup can't inject scripts.
+import { toast } from './ui/toast';
 
 type Child = Node | string | number | null | undefined | false;
 type Attrs = Record<string, string | number | boolean | null | undefined | EventListener>;
@@ -55,20 +56,6 @@ export function formValues(form: HTMLFormElement): Record<string, string> {
   return out;
 }
 
-let toastTimer: number | undefined;
-export function toast(message: string, kind: 'ok' | 'error' = 'ok') {
-  let el = document.getElementById('toast');
-  if (!el) {
-    el = h('div', { id: 'toast', role: 'status', 'aria-live': 'polite' });
-    document.body.append(el);
-  }
-  el.textContent = message;
-  el.dataset.kind = kind;
-  el.dataset.show = 'true';
-  window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => el && (el.dataset.show = 'false'), 3500);
-}
-
 export function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Something went wrong';
 }
@@ -83,10 +70,6 @@ export async function run(button: HTMLButtonElement | null, fn: () => Promise<vo
   } finally {
     if (button) button.disabled = false;
   }
-}
-
-export function emptyState(text: string) {
-  return h('p', { class: 'empty' }, text);
 }
 
 export function categoryOptions(

@@ -3,8 +3,22 @@ const inrShortFmt = new Intl.NumberFormat('en-IN', { style: 'currency', currency
 const dateFmt = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const monthFmt = new Intl.DateTimeFormat('en-IN', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 
+/** Full precision, for tables and edit forms. */
 export const inr = (n: number) => inrFmt.format(n);
+/** Compact (₹5.7L), for KPIs and charts. Pair it with a title holding inr(n). */
 export const inrShort = (n: number) => inrShortFmt.format(n);
+export const signedInr = (amount: number, type: 'debit' | 'credit') => `${type === 'credit' ? '+' : '−'}${inr(amount)}`;
+
+/** Parses a typed amount such as "1,234.50" or "₹ 1234"; NaN if it isn't a positive amount with ≤ 2 decimals. */
+export function parseMoney(raw: string): number {
+  const s = raw.replace(/[₹,\s]/g, '');
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return Number.NaN;
+  const n = Number(s);
+  return n > 0 ? n : Number.NaN;
+}
+
+/** An amount as it should appear in an editable money field. */
+export const moneyInput = (n: number) => n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 export const fmtDate = (iso: string) => dateFmt.format(new Date(`${iso}T00:00:00Z`));
 export const fmtMonth = (ym: string) => monthFmt.format(new Date(`${ym}-01T00:00:00Z`));
 

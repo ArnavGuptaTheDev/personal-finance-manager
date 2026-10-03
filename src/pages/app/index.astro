@@ -1,44 +1,61 @@
 ---
+import Card from '../../components/ui/Card.astro';
+import Select from '../../components/ui/Select.astro';
+import Skeleton from '../../components/ui/Skeleton.astro';
 import AppShell from '../../layouts/AppShell.astro';
+
+const ranges = [
+  { value: 'this-month', label: 'This month' },
+  { value: 'last-month', label: 'Last month' },
+  { value: '3-months', label: 'Last 3 months' },
+  { value: '12-months', label: 'Last 12 months', selected: true },
+  { value: 'this-year', label: 'This year' },
+  { value: 'all', label: 'All time' },
+];
+const kpis = [
+  { id: 'income', label: 'Income', cls: 'income' },
+  { id: 'spend', label: 'Spending', cls: 'spend' },
+  { id: 'net', label: 'Net', cls: '' },
+  { id: 'count', label: 'Transactions', cls: '' },
+];
 ---
 
 <AppShell title="Dashboard" heading="Dashboard" subtitle="Your money at a glance">
-  <label slot="actions">
-    <span class="visually-hidden">Period</span>
-    <select id="range">
-      <option value="this-month">This month</option>
-      <option value="last-month">Last month</option>
-      <option value="3-months">Last 3 months</option>
-      <option value="12-months" selected>Last 12 months</option>
-      <option value="this-year">This year</option>
-      <option value="all">All time</option>
-    </select>
-  </label>
+  <Select slot="actions" label="Period" hideLabel id="range" options={ranges} />
 
   <div class="stack">
     <section class="grid grid-kpi" aria-label="Totals">
-      <div class="card kpi"><div class="label">Income</div><div class="value income" id="kpi-income">—</div></div>
-      <div class="card kpi"><div class="label">Spending</div><div class="value spend" id="kpi-spend">—</div></div>
-      <div class="card kpi"><div class="label">Net</div><div class="value" id="kpi-net">—</div></div>
-      <div class="card kpi"><div class="label">Transactions</div><div class="value" id="kpi-count">—</div></div>
+      {
+        kpis.map((k) => (
+          <div class="card kpi">
+            <div class="label">{k.label}</div>
+            <div class:list={['value', k.cls]} id={`kpi-${k.id}`}>
+              <Skeleton variant="value" />
+            </div>
+            <div class="sub" id={`kpi-${k.id}-sub`} />
+          </div>
+        ))
+      }
     </section>
 
-    <p id="uncat-note" class="card small" hidden></p>
-
     <section class="grid grid-2">
-      <div class="card"><h2>Income vs spending</h2><div id="monthly"></div></div>
-      <div class="card"><h2>Spending by category</h2><div id="by-category"></div></div>
+      <Card title="Income vs spending" class="card-fill">
+        <div id="monthly" class="slot-chart"><Skeleton variant="block" /></div>
+      </Card>
+      <Card title="Spending by category">
+        <div id="by-category" class="slot-list"><Skeleton variant="row" count={5} /></div>
+      </Card>
     </section>
 
     <section class="grid grid-2">
-      <div class="card">
-        <div class="row"><h2>Budgets this month</h2><span class="spacer"></span><a class="small" href="/app/budgets/">Manage</a></div>
-        <div id="budgets"></div>
-      </div>
-      <div class="card">
-        <div class="row"><h2>Recent transactions</h2><span class="spacer"></span><a class="small" href="/app/transactions/">View all</a></div>
-        <div id="recent"></div>
-      </div>
+      <Card title="Budgets this month">
+        <a slot="actions" class="small" href="/app/budgets/">Manage</a>
+        <div id="budgets" class="slot-short"><Skeleton variant="row" count={3} /></div>
+      </Card>
+      <Card title="Recent transactions">
+        <a slot="actions" class="small" href="/app/transactions/">View all</a>
+        <div id="recent" class="slot-list"><Skeleton variant="row" count={5} /></div>
+      </Card>
     </section>
   </div>
 </AppShell>

@@ -1,21 +1,25 @@
 ---
+import Button from '../../components/ui/Button.astro';
+import Card from '../../components/ui/Card.astro';
+import Field from '../../components/ui/Field.astro';
+import Select from '../../components/ui/Select.astro';
+import Skeleton from '../../components/ui/Skeleton.astro';
 import AppShell from '../../layouts/AppShell.astro';
 ---
 
 <AppShell title="Budgets" heading="Budgets" subtitle="Monthly spending limits per category">
-  <label slot="actions"><span class="visually-hidden">Month</span><input type="month" id="month" /></label>
+  <Field slot="actions" label="Month" hideLabel type="month" id="month" />
 
   <div class="stack">
-    <form id="budget-form" class="card form-grid">
-      <label>Category<select name="category_id" id="budget-category" required></select></label>
-      <label>Monthly limit (₹)<input name="amount" type="number" min="1" step="0.01" required inputmode="decimal" /></label>
-      <div><button class="btn btn-primary" type="submit" id="budget-save">Save budget</button></div>
+    <form id="budget-form" class="card form-inline">
+      <Select label="Category" name="category_id" id="budget-category" required />
+      <Field label="Monthly limit (₹)" name="amount" money required placeholder="0.00" />
+      <Button variant="primary" type="submit">Save budget</Button>
     </form>
 
-    <section class="card">
-      <h2 id="budget-title">This month</h2>
-      <div id="budget-list"></div>
-    </section>
+    <Card title="This month" titleId="budget-title">
+      <div id="budget-list" class="slot-short"><Skeleton variant="row" count={3} /></div>
+    </Card>
   </div>
 </AppShell>
 

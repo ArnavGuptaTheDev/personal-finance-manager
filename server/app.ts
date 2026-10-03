@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
-import { authRoutes, requireAuth } from './auth';
+import { authRoutes, requireAuth, sessionOwner } from './auth';
 import type { AppEnv } from './env';
-import { auditTrail } from './lib/audit';
+import { auditTrail, noteAudit } from './lib/audit';
 import { adminRoutes } from './routes/admin';
 import { categoryRoutes } from './routes/categories';
 import { emiRoutes } from './routes/emis';
@@ -40,7 +40,11 @@ app.use(async (c, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) return next();
   const origin = c.req.header('origin');
   const allowed = [new URL(c.env.APP_URL).origin, c.env.DEV_ORIGIN].filter(Boolean);
-  if (!origin || !allowed.includes(origin)) return c.json({ error: 'Cross-origin request blocked' }, 403);
+  if (!origin || !allowed.includes(origin)) {
+    const who = await sessionOwner(c);
+    if (who) noteAudit(c, { userId: who.id, email: who.email });
+    return c.json({ error: 'Cross-origin request blocked' }, 403);
+  }
   return next();
 });
 

@@ -1,0 +1,19 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+type Props = HTMLAttributes<'section'> & { title?: string; titleId?: string };
+const { title, titleId, class: extra, ...rest } = Astro.props;
+---
+
+<section class:list={['card', extra]} {...rest}>
+  {
+    (title || Astro.slots.has('actions')) && (
+      <div class="card-head">
+        {title && <h2 id={titleId}>{title}</h2>}
+        <span class="spacer" />
+        <slot name="actions" />
+      </div>
+    )
+  }
+  <slot />
+</section>

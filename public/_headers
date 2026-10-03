@@ -13,6 +13,12 @@
 /app/*
   Cache-Control: no-store
   X-Robots-Tag: noindex
+  # Prefetch app pages on hover (Chromium). Prefetch only, never prerender: no page script
+  # runs, so no API call is made before the person actually navigates.
+  Speculation-Rules: "/speculation-rules.json"
+
+/speculation-rules.json
+  Content-Type: application/speculationrules+json
 
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable

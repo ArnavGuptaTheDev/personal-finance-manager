@@ -1,135 +1,188 @@
 import { del, get, post, put } from '../api';
-import { $, emptyState, errorMessage, formValues, h, replace, run, toast } from '../dom';
-import { fmtDate, inr, today } from '../format';
+import { $, errorMessage, h, replace } from '../dom';
+import { fmtDate, inr, inrShort, moneyInput, parseMoney, today } from '../format';
 import type { Loan, Person } from '../types';
+import { button } from '../ui/button';
+import { bindForm, clearErrors, setValues } from '../ui/form';
+import { openDialog } from '../ui/modal';
+import { bindTabs } from '../ui/tabs';
+import { emptyState, errorState, renderList } from '../ui/table';
+import { toast, undoToast } from '../ui/toast';
 
+const loanDialog = $<HTMLDialogElement>('#loan-dialog');
 const loanForm = $<HTMLFormElement>('#loan-form');
+const personDialog = $<HTMLDialogElement>('#person-dialog');
+const personEdit = $<HTMLFormElement>('#person-edit');
 const personForm = $<HTMLFormElement>('#person-form');
 
-function resetLoanForm() {
-  loanForm.reset();
-  (loanForm.elements.namedItem('date') as HTMLInputElement).value = today();
-}
+let people: Person[] = [];
+let loans: Loan[] = [];
+let view = 'active';
+let editingLoan: Loan | null = null;
+let editingPerson: Person | null = null;
+
+const settled = (l: Loan) => l.outstanding <= 0;
 
 async function load() {
-  const [people, loans] = await Promise.all([get<Person[]>('/people'), get<Loan[]>('/loans')]);
+  try {
+    [people, loans] = await Promise.all([get<Person[]>('/people'), get<Loan[]>('/loans')]);
+  } catch (err) {
+    replace($('#loan-list'), errorState(errorMessage(err), () => void load()));
+    return;
+  }
+  render();
+}
 
-  replace(
-    $('#loan-person'),
-    ...(people.length ? people.map((p) => h('option', { value: p.id }, p.name)) : [h('option', { value: '' }, 'Add a person first')]),
-  );
-  replace($('#people'), ...(people.length ? people.map(personItem) : [h('li', { class: 'muted small' }, 'No people yet.')]));
+function render() {
+  renderList($('#people'), people, personItem, h('li', { class: 'muted small' }, 'No people yet. Add someone to record a loan.'));
 
   const owedToMe = loans.filter((l) => l.direction === 'lent').reduce((s, l) => s + Math.max(0, l.outstanding), 0);
   const iOwe = loans.filter((l) => l.direction === 'borrowed').reduce((s, l) => s + Math.max(0, l.outstanding), 0);
-  $('#owed-to-me').textContent = inr(owedToMe);
-  $('#i-owe').textContent = inr(iOwe);
+  for (const [id, amount] of [['owed-to-me', owedToMe], ['i-owe', iOwe]] as const) {
+    const el = $(`#${id}`);
+    el.textContent = inrShort(amount);
+    el.title = inr(amount);
+  }
 
-  replace($('#loan-list'), ...(loans.length ? loans.map(loanCard) : [h('div', { class: 'card' }, emptyState('No loans recorded.'))]));
+  // Active loans first, newest first within each group.
+  const shown = loans
+    .filter((l) => view === 'all' || (view === 'settled') === settled(l))
+    .sort((a, b) => Number(settled(a)) - Number(settled(b)) || b.date.localeCompare(a.date));
+  const empty = view === 'settled' ? 'No settled loans yet.' : view === 'active' && loans.length ? 'Everything is settled.' : 'No loans recorded.';
+  renderList($('#loan-list'), shown, loanCard, h('div', { class: 'card' }, emptyState(empty)));
 }
 
 function personItem(p: Person): HTMLElement {
-  const rename = h('button', { class: 'btn btn-ghost btn-sm', type: 'button' }, 'Rename');
-  rename.addEventListener('click', () => {
-    const name = prompt('New name', p.name)?.trim();
-    if (!name || name === p.name) return;
-    run(rename, async () => {
-      await put(`/people/${p.id}`, { name, note: p.note });
-      await load();
-    });
-  });
-  const remove = h('button', { class: 'btn btn-ghost btn-sm btn-danger', type: 'button' }, 'Delete');
-  remove.addEventListener('click', () =>
-    run(remove, async () => {
-      if (!confirm(`Delete ${p.name}? Their loans and payments are deleted too.`)) return;
-      await del(`/people/${p.id}`);
-      toast('Person deleted');
-      await load();
-    }),
+  return h('li', { class: 'row' },
+    h('span', null, p.name, p.note && h('span', { class: 'cell-sub' }, p.note)),
+    h('span', { class: 'spacer' }),
+    button('Edit', { variant: 'ghost', size: 'sm', onClick: () => openPerson(p) }),
+    button('Delete', { variant: 'ghost-danger', size: 'sm', onClick: () => void removePerson(p) }),
   );
-  return h('li', { class: 'row' }, h('span', null, p.name), h('span', { class: 'spacer' }), rename, remove);
 }
 
 function loanCard(l: Loan): HTMLElement {
-  const settled = l.outstanding <= 0;
-  const payForm = h('form', { class: 'row' },
-    h('input', { name: 'amount', type: 'number', min: '0.01', step: '0.01', required: true, placeholder: 'Amount', 'aria-label': 'Payment amount', inputmode: 'decimal' }),
-    h('input', { name: 'date', type: 'date', required: true, value: today(), 'aria-label': 'Payment date' }),
-    h('button', { class: 'btn btn-sm', type: 'submit' }, l.direction === 'lent' ? 'Record repayment' : 'Record payment'),
+  const isSettled = settled(l);
+  const payForm = h('form', { class: 'form-inline' },
+    h('label', { class: 'field' }, h('span', null, 'Amount (₹)'),
+      h('input', { name: 'amount', type: 'text', inputmode: 'decimal', 'data-money': '', autocomplete: 'off', required: true, placeholder: '0.00' }),
+      h('span', { class: 'field-error' })),
+    h('label', { class: 'field' }, h('span', null, 'Date'), h('input', { name: 'date', type: 'date', required: true, value: today() }), h('span', { class: 'field-error' })),
+    button(l.direction === 'lent' ? 'Record repayment' : 'Record payment', { type: 'submit' }),
   );
-  payForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const v = formValues(payForm);
-    run(payForm.querySelector('button'), async () => {
-      await post(`/loans/${l.id}/payments`, { amount: Number(v.amount), date: v.date });
-      toast('Payment recorded');
-      await load();
-    });
+  bindForm(payForm, async (v) => {
+    await post(`/loans/${l.id}/payments`, { amount: parseMoney(v.amount ?? ''), date: v.date });
+    toast('Payment recorded');
+    await load();
   });
-
-  const remove = h('button', { class: 'btn btn-ghost btn-sm btn-danger', type: 'button' }, 'Delete loan');
-  remove.addEventListener('click', () =>
-    run(remove, async () => {
-      if (!confirm(`Delete "${l.title}" and its payments?`)) return;
-      await del(`/loans/${l.id}`);
-      toast('Loan deleted');
-      await load();
-    }),
-  );
 
   const payments = l.payments.length
     ? h('ul', { class: 'plain-list small' },
-        ...l.payments.map((p) => {
-          const x = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', 'aria-label': 'Delete payment' }, '×');
-          x.addEventListener('click', () =>
-            run(x, async () => {
-              await del(`/loans/${l.id}/payments/${p.id}`);
-              await load();
-            }),
-          );
-          return h('li', { class: 'row' }, h('span', { class: 'muted' }, fmtDate(p.date)), h('span', { class: 'num' }, inr(p.amount)), x);
-        }),
+        ...l.payments.map((p) =>
+          h('li', { class: 'row' },
+            h('span', { class: 'muted num' }, fmtDate(p.date)),
+            h('span', { class: 'num' }, inr(p.amount)),
+            h('span', { class: 'spacer' }),
+            button('×', { variant: 'ghost', size: 'sm', icon: true, ariaLabel: `Delete payment of ${inr(p.amount)}`, onClick: () => void removePayment(l, p.id) }),
+          ),
+        ),
       )
     : null;
 
-  return h('article', { class: 'card stack' },
-    h('div', { class: 'row' },
+  return h('article', { class: 'card stack-sm' },
+    h('div', { class: 'card-head' },
       h('h2', null, l.title),
       h('span', { class: 'badge' }, l.direction === 'lent' ? `Lent to ${l.person_name}` : `Borrowed from ${l.person_name}`),
-      settled && h('span', { class: 'badge' }, 'Settled'),
+      isSettled && h('span', { class: 'badge badge-positive' }, 'Settled'),
       h('span', { class: 'spacer' }),
-      remove,
+      button('Edit', { variant: 'ghost', size: 'sm', onClick: () => openLoan(l) }),
+      button('Delete', { variant: 'ghost-danger', size: 'sm', onClick: () => void removeLoan(l) }),
     ),
     h('p', { class: 'muted small' },
       `${inr(l.amount)} on ${fmtDate(l.date)} · paid back ${inr(l.paid)} · `,
-      h('strong', { class: settled ? 'income' : 'spend' }, `${inr(Math.max(0, l.outstanding))} outstanding`),
+      h('strong', { class: isSettled ? 'income' : 'spend' }, `${inr(Math.max(0, l.outstanding))} outstanding`),
     ),
+    l.note && h('p', { class: 'small' }, l.note),
     payments,
-    !settled && payForm,
+    !isSettled && payForm,
   );
 }
 
-loanForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const v = formValues(loanForm);
-  if (!v.person_id) return toast('Add a person first', 'error');
-  run($<HTMLButtonElement>('#loan-save'), async () => {
-    await post('/loans', { person_id: Number(v.person_id), direction: v.direction, title: v.title, amount: Number(v.amount), date: v.date });
-    toast('Loan added');
-    resetLoanForm();
-    await load();
+function openLoan(l: Loan | null) {
+  if (!people.length) {
+    toast('Add a person first', 'error');
+    personForm.querySelector('input')?.focus();
+    return;
+  }
+  editingLoan = l;
+  loanForm.reset();
+  clearErrors(loanForm);
+  $('#loan-dialog-title').textContent = l ? 'Edit loan' : 'Add loan';
+  replace($('#loan-person'), ...people.map((p) => h('option', { value: p.id }, p.name)));
+  setValues(loanForm, {
+    person_id: l?.person_id ?? people[0]?.id,
+    direction: l?.direction ?? 'lent',
+    title: l?.title ?? '',
+    amount: l ? moneyInput(l.amount) : '',
+    date: l?.date ?? today(),
+    note: l?.note ?? '',
   });
+  openDialog(loanDialog);
+}
+
+function openPerson(p: Person) {
+  editingPerson = p;
+  personEdit.reset();
+  clearErrors(personEdit);
+  setValues(personEdit, { name: p.name, note: p.note ?? '' });
+  openDialog(personDialog);
+}
+
+bindForm(loanForm, async (v) => {
+  const body = { person_id: Number(v.person_id), direction: v.direction, title: v.title, amount: parseMoney(v.amount ?? ''), date: v.date, note: v.note || null };
+  if (editingLoan) await put(`/loans/${editingLoan.id}`, body);
+  else await post('/loans', body);
+  loanDialog.close();
+  toast(editingLoan ? 'Loan updated' : 'Loan added');
+  await load();
 });
 
-personForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const v = formValues(personForm);
-  run($<HTMLButtonElement>('#person-save'), async () => {
-    await post('/people', { name: v.name });
-    personForm.reset();
-    await load();
-  });
+bindForm(personEdit, async (v) => {
+  if (!editingPerson) return;
+  await put(`/people/${editingPerson.id}`, { name: v.name, note: v.note || null });
+  personDialog.close();
+  toast('Person updated');
+  await load();
 });
 
-resetLoanForm();
-load().catch((err) => toast(errorMessage(err), 'error'));
+bindForm(personForm, async (v) => {
+  await post('/people', { name: v.name });
+  personForm.reset();
+  await load();
+});
+
+async function softRemove(path: string, message: string) {
+  try {
+    await del(path);
+  } catch (err) {
+    toast(errorMessage(err), 'error');
+    return;
+  }
+  await load();
+  undoToast(message, async () => {
+    await post(`${path}/restore`, {});
+    await load();
+  });
+}
+
+const removeLoan = (l: Loan) => softRemove(`/loans/${l.id}`, `Deleted "${l.title}"`);
+const removePayment = (l: Loan, id: number) => softRemove(`/loans/${l.id}/payments/${id}`, 'Payment deleted');
+const removePerson = (p: Person) => softRemove(`/people/${p.id}`, `Deleted ${p.name} and their loans`);
+
+$('#add-loan').addEventListener('click', () => openLoan(null));
+bindTabs($('#loan-tabs'), (value) => {
+  view = value;
+  render();
+});
+
+void load();

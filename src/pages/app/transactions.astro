@@ -1,76 +1,91 @@
 ---
+import Button from '../../components/ui/Button.astro';
+import Card from '../../components/ui/Card.astro';
+import Field from '../../components/ui/Field.astro';
+import Select from '../../components/ui/Select.astro';
+import Table from '../../components/ui/Table.astro';
 import AppShell from '../../layouts/AppShell.astro';
+
+const typeOptions = [
+  { value: '', label: 'Debits & credits' },
+  { value: 'debit', label: 'Debits only' },
+  { value: 'credit', label: 'Credits only' },
+];
 ---
 
 <AppShell title="Transactions" heading="Transactions" subtitle="Search, recategorize and edit">
-  <button slot="actions" id="add-btn" class="btn btn-primary" type="button">+ Add transaction</button>
+  <Fragment slot="actions">
+    <Button variant="default" class="filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="filters">Filters</Button>
+    <Button variant="primary" id="add-btn">+ Add transaction</Button>
+  </Fragment>
 
   <div class="stack">
-    <form id="filters" class="card form-grid" role="search">
-      <label>Search<input name="q" type="search" placeholder="Description or remark" maxlength="100" /></label>
-      <label>Category<select name="category" id="filter-category"><option value="">All categories</option></select></label>
-      <label>Type
-        <select name="type">
-          <option value="">Debits & credits</option>
-          <option value="debit">Debits only</option>
-          <option value="credit">Credits only</option>
-        </select>
-      </label>
-      <label>From<input name="from" type="date" /></label>
-      <label>To<input name="to" type="date" /></label>
-      <div class="row"><button class="btn" type="submit">Apply</button><button class="btn btn-ghost" type="reset">Clear</button></div>
+    <form id="filters" class="card filters" role="search">
+      <Field label="Search" name="q" type="search" placeholder="Description or remark" maxlength="100" />
+      <Select label="Category" name="category" id="filter-category" options={[{ value: '', label: 'All categories' }]} />
+      <Select label="Type" name="type" options={typeOptions} />
+      <Field label="From" name="from" type="date" />
+      <Field label="To" name="to" type="date" />
+      <Button variant="ghost" type="reset">Clear</Button>
     </form>
 
-    <section class="card">
-      <div class="row">
-        <p id="count" class="muted small">Loading…</p>
+    <Card>
+      <div class="card-head list-head">
+        <div id="summary-line" class="small muted"><span class="skeleton skeleton-text"></span></div>
         <span class="spacer"></span>
-        <label class="row" id="bulk-box" hidden>
-          <span id="bulk-count"></span>
+        <div class="row" id="bulk-box" hidden>
+          <span id="bulk-count" class="small"></span>
+          <label class="visually-hidden" for="bulk-category">Category for selected</label>
           <select id="bulk-category"></select>
-          <button id="bulk-apply" class="btn btn-sm" type="button">Set category</button>
-        </label>
+          <Button size="sm" id="bulk-apply">Set category</Button>
+          <Button size="sm" variant="ghost-danger" id="bulk-delete">Delete</Button>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th><input type="checkbox" id="select-all" aria-label="Select all on this page" /></th>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Category</th>
-              <th class="right">Amount</th>
-              <th><span class="visually-hidden">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
+      <div class="slot-table">
+        <Table
+          bodyId="rows"
+          columns={[
+            { label: 'Select all on this page', checkId: 'select-all', class: 'shrink' },
+            { label: 'Date', class: 'shrink' },
+            { label: 'Description' },
+            { label: 'Category' },
+            { label: 'Amount', class: 'right' },
+            { label: 'Actions', hidden: true, class: 'shrink' },
+          ]}
+          skeleton={8}
+        />
       </div>
-      <div class="row" id="pager">
-        <button class="btn btn-sm" id="prev" type="button">← Newer</button>
+      <div class="row pager">
+        <Button size="sm" id="prev">← Newer</Button>
         <span class="muted small" id="page-info"></span>
-        <button class="btn btn-sm" id="next" type="button">Older →</button>
+        <Button size="sm" id="next">Older →</Button>
       </div>
-    </section>
+    </Card>
   </div>
 
-  <dialog id="txn-dialog" aria-labelledby="txn-dialog-title">
-    <form id="txn-form" method="dialog" class="stack">
+  <dialog id="txn-dialog" class="dialog-form" aria-labelledby="txn-dialog-title">
+    <form id="txn-form" class="form">
       <h2 id="txn-dialog-title">Add transaction</h2>
-      <div class="form-grid">
-        <label>Date<input name="date" type="date" required /></label>
-        <label>Amount (₹)<input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
-        <label>Type
-          <select name="type"><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option></select>
-        </label>
-        <label>Category<select name="category_id" id="txn-category"></select></label>
+      <div class="form-row keep-2">
+        <Field label="Date" name="date" type="date" required />
+        <Field label="Amount (₹)" name="amount" money required placeholder="0.00" />
       </div>
-      <label>Description<input name="description" required maxlength="500" /></label>
-      <label>Remark<input name="remark" maxlength="500" placeholder="Optional note" /></label>
-      <div class="row">
-        <span class="spacer"></span>
-        <button class="btn" type="button" id="txn-cancel">Cancel</button>
-        <button class="btn btn-primary" type="submit" id="txn-save">Save</button>
+      <div class="form-row">
+        <Select
+          label="Type"
+          name="type"
+          options={[
+            { value: 'debit', label: 'Debit (money out)' },
+            { value: 'credit', label: 'Credit (money in)' },
+          ]}
+        />
+        <Select label="Category" name="category_id" id="txn-category" />
+      </div>
+      <Field label="Description" name="description" required maxlength="500" />
+      <Field label="Remark" name="remark" maxlength="500" placeholder="Optional note" />
+      <div class="form-actions">
+        <Button data-close>Cancel</Button>
+        <Button variant="primary" type="submit">Save</Button>
       </div>
     </form>
   </dialog>
@@ -79,3 +94,8 @@ import AppShell from '../../layouts/AppShell.astro';
 <script>
   import '../../client/pages/transactions';
 </script>
+
+<style>
+  .list-head { min-height: 40px; }
+  .pager { justify-content: center; margin-top: var(--space-3); }
+</style>

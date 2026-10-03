@@ -104,9 +104,9 @@ const features = [
     align-items: center;
     padding: clamp(2rem, 6vw, 5rem) 0;
   }
-  .eyebrow { color: var(--accent); font-weight: 650; letter-spacing: 0.02em; margin-bottom: 0.8rem; }
+  .eyebrow { color: var(--warning); font-weight: 650; letter-spacing: 0.02em; margin-bottom: 0.8rem; }
   .hero h1 { font-size: clamp(2.4rem, 1.6rem + 3.6vw, 4.4rem); font-weight: 800; letter-spacing: -0.035em; }
-  .lede { font-size: 1.15rem; color: var(--ink-2); max-width: 34ch; margin: 1rem 0 1.6rem; }
+  .lede { font-size: 1.15rem; color: var(--muted); max-width: 34ch; margin: 1rem 0 1.6rem; }
   .btn-lg { padding: 0.8rem 1.4rem; font-size: 1rem; }
   .hero-copy .small { margin-top: 1rem; }
 
@@ -117,11 +117,11 @@ const features = [
   .art-bars rect:nth-child(3) { animation-delay: 0.1s; }
   .art-bars rect:nth-child(4) { animation-delay: 0.15s; }
   .art-bars rect:nth-child(5) { animation-delay: 0.2s; }
-  .art-bars rect:nth-child(6) { animation-delay: 0.25s; fill: var(--accent); }
+  .art-bars rect:nth-child(6) { animation-delay: 0.25s; fill: var(--warning); }
   .art-bars rect:nth-child(7) { animation-delay: 0.3s; }
   .art-line { fill: none; stroke: var(--brand); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 600; animation: draw 1.6s 0.3s ease forwards; stroke-dashoffset: 600; }
   .art-dots circle { fill: var(--surface); stroke: var(--brand); stroke-width: 3; }
-  .art-label { fill: var(--ink-2); font: 500 14px var(--font-text); }
+  .art-label { fill: var(--muted); font: 500 14px var(--font-text); }
   .art-value { fill: var(--ink); font: 700 26px var(--font-display); }
   @keyframes rise { from { transform: scaleY(0); } }
   @keyframes draw { to { stroke-dashoffset: 0; } }

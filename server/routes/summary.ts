@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import type { AppEnv } from '../env';
 import { fromMinor, toMinor } from '../lib/money';
+import { restore, softDelete } from '../lib/soft-delete';
 import { idParam, isoDate, money, notFound, readJson } from '../lib/validate';
 import { allowedCategoryIds } from './categories';
 
@@ -18,8 +19,8 @@ summaryRoutes.get('/', async (c) => {
   const from = parsed.data.from ?? '0000-01-01';
   const to = parsed.data.to ?? '9999-12-31';
   const uid = c.get('userId');
-  const base = `FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
-                WHERE t.user_id = ?1 AND t.date BETWEEN ?2 AND ?3`;
+  const base = `FROM transactions t LEFT JOIN categories c ON c.id = t.category_id AND c.deleted_at IS NULL
+                WHERE t.user_id = ?1 AND t.deleted_at IS NULL AND t.date BETWEEN ?2 AND ?3`;
   const db = c.env.DB;
 
   type Totals = { income: number; spend: number; count: number; uncategorized: number };
@@ -31,7 +32,7 @@ summaryRoutes.get('/', async (c) => {
       `SELECT COALESCE(SUM(CASE WHEN t.type = 'credit' AND ${NOT_TRANSFER} THEN t.amount_minor END), 0) AS income,
               COALESCE(SUM(CASE WHEN t.type = 'debit'  AND ${NOT_TRANSFER} THEN t.amount_minor END), 0) AS spend,
               COUNT(*) AS count,
-              SUM(t.category_id IS NULL) AS uncategorized ${base}`,
+              SUM(t.type = 'debit' AND c.id IS NULL) AS uncategorized ${base}`,
     ).bind(uid, from, to),
     db.prepare(
       `SELECT substr(t.date, 1, 7) AS month,
@@ -40,9 +41,9 @@ summaryRoutes.get('/', async (c) => {
          ${base} GROUP BY month ORDER BY month`,
     ).bind(uid, from, to),
     db.prepare(
-      `SELECT t.category_id, c.name, SUM(t.amount_minor) AS spend, COUNT(*) AS count
+      `SELECT c.id AS category_id, c.name, SUM(t.amount_minor) AS spend, COUNT(*) AS count
          ${base} AND t.type = 'debit' AND ${NOT_TRANSFER}
-        GROUP BY t.category_id ORDER BY spend DESC`,
+        GROUP BY c.id ORDER BY spend DESC`,
     ).bind(uid, from, to),
   ]);
 
@@ -69,17 +70,21 @@ summaryRoutes.get('/', async (c) => {
 
 export const budgetRoutes = new Hono<AppEnv>();
 
-/** Monthly budgets with what has been spent against each in the given month. */
+/**
+ * Monthly budgets with what has been spent against each in the given month: debits
+ * minus refunds (credits) in the category, never below zero. The client sends the
+ * month from its own calendar; the server's UTC date is only a fallback.
+ */
 budgetRoutes.get('/', async (c) => {
   const month = c.req.query('month') ?? new Date().toISOString().slice(0, 7);
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new HTTPException(400, { message: 'month must be YYYY-MM' });
   const { results } = await c.env.DB.prepare(
     `SELECT b.id, b.category_id, c.name, b.amount_minor,
-            COALESCE((SELECT SUM(t.amount_minor) FROM transactions t
-                       WHERE t.user_id = b.user_id AND t.category_id = b.category_id
-                         AND t.type = 'debit' AND substr(t.date, 1, 7) = ?2), 0) AS spent_minor
-       FROM budgets b JOIN categories c ON c.id = b.category_id
-      WHERE b.user_id = ?1 ORDER BY c.name COLLATE NOCASE`,
+            MAX(0, COALESCE((SELECT SUM(CASE WHEN t.type = 'debit' THEN t.amount_minor ELSE -t.amount_minor END) FROM transactions t
+                       WHERE t.user_id = b.user_id AND t.category_id = b.category_id AND t.deleted_at IS NULL
+                         AND substr(t.date, 1, 7) = ?2), 0)) AS spent_minor
+       FROM budgets b JOIN categories c ON c.id = b.category_id AND c.deleted_at IS NULL
+      WHERE b.user_id = ?1 AND b.deleted_at IS NULL ORDER BY c.name COLLATE NOCASE`,
   )
     .bind(c.get('userId'), month)
     .all<{ id: number; category_id: number; name: string; amount_minor: number; spent_minor: number }>();
@@ -104,7 +109,7 @@ budgetRoutes.put('/', async (c) => {
   }
   const row = await c.env.DB.prepare(
     `INSERT INTO budgets (user_id, category_id, amount_minor) VALUES (?, ?, ?)
-     ON CONFLICT (user_id, category_id) DO UPDATE SET amount_minor = excluded.amount_minor
+     ON CONFLICT (user_id, category_id) DO UPDATE SET amount_minor = excluded.amount_minor, deleted_at = NULL
      RETURNING id, category_id, amount_minor`,
   )
     .bind(uid, body.category_id, toMinor(body.amount))
@@ -113,8 +118,9 @@ budgetRoutes.put('/', async (c) => {
 });
 
 budgetRoutes.delete('/:id', async (c) => {
-  const res = await c.env.DB.prepare('DELETE FROM budgets WHERE id = ? AND user_id = ?')
-    .bind(idParam(c), c.get('userId'))
-    .run();
-  return res.meta.changes ? c.body(null, 204) : notFound('Budget');
+  return (await softDelete(c.env.DB, 'budgets', idParam(c), c.get('userId'))) ? c.body(null, 204) : notFound('Budget');
+});
+
+budgetRoutes.post('/:id/restore', async (c) => {
+  return (await restore(c.env.DB, 'budgets', idParam(c), c.get('userId'))) ? c.json({ ok: true }) : notFound('Deleted budget');
 });

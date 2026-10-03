@@ -19,29 +19,30 @@ function niceMax(v: number): number {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * pow;
 }
 
-/** Grouped income/spend bars per month. */
-export function monthlyBars(data: { month: string; income: number; spend: number }[]): Element {
-  const W = 640;
-  const H = 240;
-  const pad = { top: 12, right: 8, bottom: 28, left: 56 };
+/** Grouped income/spend bars per month, drawn at the box's real pixel size so labels stay 12 px. */
+function drawBars(box: HTMLElement, data: { month: string; income: number; spend: number }[]) {
+  const W = Math.max(box.clientWidth, 240);
+  const H = Math.max(box.clientHeight, 200);
+  const pad = { top: 12, right: 8, bottom: 28, left: 52 };
   const innerW = W - pad.left - pad.right;
   const innerH = H - pad.top - pad.bottom;
   const max = niceMax(Math.max(...data.map((d) => Math.max(d.income, d.spend)), 0));
   const y = (v: number) => pad.top + innerH - (v / max) * innerH;
   const band = innerW / Math.max(data.length, 1);
-  const barW = Math.min(18, band * 0.32);
+  const barW = Math.max(3, Math.min(20, band * 0.34));
 
-  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': 'Income and spending by month' });
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: 'chart', role: 'img', 'aria-label': 'Income and spending by month' });
 
   for (let i = 0; i <= 4; i++) {
     const v = (max / 4) * i;
     svg.append(
-      s('line', { x1: pad.left, x2: W - pad.right, y1: y(v), y2: y(v), class: 'grid' }),
+      s('line', { x1: pad.left, x2: W - pad.right, y1: y(v), y2: y(v), class: 'grid-line' }),
       s('text', { x: pad.left - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'axis' }, document.createTextNode(inrShort(v))),
     );
   }
 
-  const labelEvery = Math.ceil(data.length / 12);
+  // Month labels need about 48 px each.
+  const labelEvery = Math.max(1, Math.ceil((data.length * 48) / innerW));
   data.forEach((d, i) => {
     const cx = pad.left + band * i + band / 2;
     const bar = (value: number, x: number, cls: string, label: string) => {
@@ -54,9 +55,22 @@ export function monthlyBars(data: { month: string; income: number; spend: number
       svg.append(s('text', { x: cx, y: H - 8, 'text-anchor': 'middle', class: 'axis' }, document.createTextNode(fmtMonth(d.month))));
     }
   });
+  box.replaceChildren(svg);
+}
+
+export function monthlyBars(data: { month: string; income: number; spend: number }[]): Element {
+  const box = h('div', { class: 'chart-box' });
+  let width = 0;
+  let height = 0;
+  new ResizeObserver(() => {
+    if (box.clientWidth === width && box.clientHeight === height) return;
+    width = box.clientWidth;
+    height = box.clientHeight;
+    drawBars(box, data);
+  }).observe(box);
 
   return h('figure', { class: 'chart-wrap' },
-    svg,
+    box,
     h('figcaption', { class: 'legend' },
       h('span', { class: 'key key-income' }, 'Income'),
       h('span', { class: 'key key-spend' }, 'Spending'),

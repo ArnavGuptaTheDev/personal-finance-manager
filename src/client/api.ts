@@ -19,6 +19,11 @@ export async function api<T = unknown>(path: string, method: Method = 'GET', bod
   });
 
   if (res.status === 401) {
+    try {
+      sessionStorage.removeItem('pfm.me');
+    } catch {
+      /* storage disabled */
+    }
     const reason = (await res.clone().json().catch(() => null)) as { error?: string } | null;
     if (reason?.error?.includes('revoked')) {
       location.href = '/login/?error=not_allowed';

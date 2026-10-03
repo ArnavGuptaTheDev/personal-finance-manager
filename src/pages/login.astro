@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 ---
 
 <Base title="Sign in · Personal Finance Manager">
+  <script is:inline slot="head" src="/auth-check.js"></script>
   <main class="login">
     <div class="card panel">
       <a class="brand" href="/"><Logo /><span>Personal Finance Manager</span></a>
@@ -50,9 +51,17 @@ import Base from '../layouts/Base.astro';
     btn.href = `/api/auth/google?next=${encodeURIComponent(next)}`;
   }
   // Already signed in? Go straight to the app.
-  fetch('/api/me', { credentials: 'same-origin' }).then((r) => {
-    if (r.ok && !error) location.replace(next?.startsWith('/') && !next.startsWith('//') ? next : '/app/');
-  });
+  const reveal = () => document.documentElement.classList.remove('auth-check');
+  setTimeout(reveal, 2000);
+  fetch('/api/me', { credentials: 'same-origin' })
+    .then((r) => {
+      if (r.ok && !error) location.replace(next?.startsWith('/') && !next.startsWith('//') ? next : '/app/');
+      else {
+        sessionStorage.removeItem('pfm.me');
+        reveal();
+      }
+    })
+    .catch(reveal);
 </script>
 
 <style>
@@ -63,5 +72,5 @@ import Base from '../layouts/Base.astro';
   .google { justify-content: center; padding: 0.75rem 1rem; margin-top: 0.8rem; }
   .google svg { background: #fff; border-radius: 50%; padding: 2px; width: 22px; height: 22px; }
   .legal { margin: 0.8rem 0 0; text-align: center; }
-  .error { color: var(--danger); font-weight: 550; margin: 0.4rem 0 0; }
+  .error { color: var(--negative); font-weight: 550; margin: 0.4rem 0 0; }
 </style>

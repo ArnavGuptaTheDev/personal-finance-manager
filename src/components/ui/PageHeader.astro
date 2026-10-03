@@ -1,0 +1,16 @@
+---
+interface Props {
+  heading: string;
+  subtitle?: string;
+}
+const { heading, subtitle } = Astro.props;
+---
+
+<header class="page-head">
+  <div>
+    <h1>{heading}</h1>
+    {subtitle && <p class="muted">{subtitle}</p>}
+  </div>
+  <div class="spacer"></div>
+  <div class="page-actions"><slot /></div>
+</header>

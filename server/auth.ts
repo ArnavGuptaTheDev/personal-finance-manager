@@ -281,6 +281,21 @@ export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
 };
 
+/**
+ * Who a request's session cookie belongs to, without authorising anything. Only used
+ * to name the user in audit entries for requests rejected before requireAuth (CSRF).
+ */
+export async function sessionOwner(c: Context<AppEnv>): Promise<{ id: number; email: string } | null> {
+  const token = getCookie(c, SESSION_COOKIE, 'host');
+  if (!token || token.length > 100) return null;
+  const row = await c.env.DB.prepare(
+    'SELECT u.id, u.email FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.expires_at >= ?',
+  )
+    .bind(await sha256Hex(token), now())
+    .first<{ id: number; email: string }>();
+  return row ?? null;
+}
+
 /** Only owners (OWNER_EMAILS) get past this. Must run after requireAuth. */
 export const requireOwner: MiddlewareHandler<AppEnv> = async (c, next) => {
   if (c.get('user')?.role !== 'owner') return c.json({ error: 'Owner access required' }, 403);
