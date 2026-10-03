@@ -25,6 +25,7 @@ const ACTIONS: Record<string, string> = {
   'POST /api/transactions': 'transaction.create',
   'POST /api/transactions/bulk': 'transaction.import',
   'POST /api/transactions/recategorize': 'transaction.recategorize',
+  'POST /api/transactions/reconcile': 'transaction.reconcile',
   'PATCH /api/transactions/:id': 'transaction.update',
   'DELETE /api/transactions/:id': 'transaction.delete',
 

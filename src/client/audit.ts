@@ -27,6 +27,7 @@ const LABELS: Record<string, string> = {
   'transaction.create': 'Added a transaction',
   'transaction.import': 'Imported a statement',
   'transaction.recategorize': 'Bulk-changed categories',
+  'transaction.reconcile': 'Checked a statement against existing transactions',
   'transaction.update': 'Edited a transaction',
   'transaction.delete': 'Deleted a transaction',
 

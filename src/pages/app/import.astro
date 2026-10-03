@@ -30,6 +30,17 @@ import AppShell from '../../layouts/AppShell.astro';
         <span class="spacer"></span>
         <span class="muted small" id="preview-meta"></span>
       </div>
+      <div id="parse-summary" class="small"></div>
+      <div id="corrections" class="card corrections" hidden>
+        <h3>Already imported with different details</h3>
+        <p class="muted small">
+          These transactions are already stored, but with values an earlier version of the importer got wrong (for example
+          a day/month-swapped date or a missing part of the description). Correct the stored copies instead of importing
+          them again.
+        </p>
+        <ul id="correction-list" class="plain-list small"></ul>
+        <div class="row"><span class="spacer"></span><button class="btn" id="apply-corrections" type="button">Correct selected</button></div>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
