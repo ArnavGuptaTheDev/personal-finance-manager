@@ -2,7 +2,9 @@
 import Button from '../../components/ui/Button.astro';
 import Field from '../../components/ui/Field.astro';
 import Select from '../../components/ui/Select.astro';
+import Card from '../../components/ui/Card.astro';
 import Skeleton from '../../components/ui/Skeleton.astro';
+import Tabs from '../../components/ui/Tabs.astro';
 import AppShell from '../../layouts/AppShell.astro';
 
 const kinds = [
@@ -13,7 +15,16 @@ const kinds = [
 ---
 
 <AppShell title="Categories" heading="Categories" subtitle="Rules that sort imported transactions automatically">
-  <div class="stack">
+  <Tabs
+    id="cat-tabs"
+    label="Categories page sections"
+    tabs={[
+      { value: 'categories', label: 'Categories' },
+      { value: 'rules', label: 'Rule health' },
+    ]}
+  />
+
+  <div class="stack" id="panel-categories">
     <form id="cat-form" class="card form-inline">
       <Field label="New category" name="name" required maxlength="60" placeholder="e.g. Pets" />
       <Select label="Kind" name="kind" options={kinds} />
@@ -30,6 +41,30 @@ const kinds = [
     </p>
 
     <div id="cat-list" class="grid grid-2 cat-list"><Skeleton variant="row" count={6} /></div>
+  </div>
+
+  <div class="stack" id="panel-rules" hidden>
+    <Card title="Test a rule">
+      <p class="muted small">Type a keyword or a /regex/ to see which of your transactions it would match. Nothing is saved.</p>
+      <label class="field">
+        <span class="visually-hidden">Rule to test</span>
+        <input id="rule-test" placeholder="e.g. swiggy, or /^upi.*zomato/" autocomplete="off" />
+        <span class="field-error" id="rule-test-error"></span>
+      </label>
+      <p class="small" id="rule-test-result" aria-live="polite"></p>
+      <ul class="plain-list small" id="rule-test-samples"></ul>
+    </Card>
+    <Card title="Rule health">
+      <p class="muted small" id="rules-summary"><span class="skeleton skeleton-text"></span></p>
+      <div id="rules-conflicts"></div>
+      <div id="rules-dead"></div>
+      <div class="table-wrap">
+        <table class="table-cards">
+          <thead><tr><th>Rule</th><th>Category</th><th class="right">Matches</th></tr></thead>
+          <tbody id="rules-rows"></tbody>
+        </table>
+      </div>
+    </Card>
   </div>
 
   <dialog id="cat-dialog" class="dialog-form" aria-labelledby="cat-dialog-title">

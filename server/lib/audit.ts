@@ -33,6 +33,14 @@ const ACTIONS: Record<string, string> = {
   'POST /api/transactions/:id/restore': 'transaction.restore',
   'POST /api/transactions/delete': 'transaction.bulk_delete',
   'POST /api/transactions/restore': 'transaction.bulk_restore',
+  'POST /api/transactions/merchants/backfill': 'transaction.merchant_backfill',
+  'GET /api/transactions/rule-preview': 'transaction.rule_preview',
+  'POST /api/transactions/apply-rule': 'transaction.rule_apply',
+  'POST /api/transactions/suggest': 'transaction.suggest',
+  'GET /api/transactions/texts': 'transaction.rule_health_view',
+  'GET /api/transactions/pairs': 'transaction.pairs_view',
+  'POST /api/transactions/pairs': 'transaction.pair_create',
+  'DELETE /api/transactions/pairs/:id': 'transaction.pair_delete',
 
   'GET /api/summary': 'summary.view',
 

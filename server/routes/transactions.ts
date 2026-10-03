@@ -6,6 +6,7 @@ import { noteAudit } from '../lib/audit';
 import { sha256Hex } from '../lib/crypto';
 import { fromMinor, toMinor } from '../lib/money';
 import { restore, softDelete } from '../lib/soft-delete';
+import { normalizeMerchant } from '../../src/client/merchant';
 import { idParam, isoDate, money, notFound, optionalText, readJson } from '../lib/validate';
 import { allowedCategoryIds } from './categories';
 
@@ -59,6 +60,8 @@ type TxnRow = {
   account_type: string | null;
   account_last4: string | null;
   remark: string | null;
+  merchant: string | null;
+  transfer_pair_id: number | null;
 };
 
 const toApi = ({ amount_minor, ...rest }: TxnRow) => ({ ...rest, amount: fromMinor(amount_minor) });
@@ -103,7 +106,7 @@ function swappedDate(iso: string): string | null {
 // A transaction whose category was deleted reads as Uncategorized until the category is restored.
 const FROM_TXN = 'FROM transactions t LEFT JOIN categories c ON c.id = t.category_id AND c.deleted_at IS NULL';
 const SELECT_TXN = `SELECT t.id, t.date, t.amount_minor, t.type, t.description, c.id AS category_id, c.name AS category_name,
-                           t.bank, t.account_type, t.account_last4, t.remark
+                           t.bank, t.account_type, t.account_last4, t.remark, t.merchant, t.transfer_pair_id
                       ${FROM_TXN}`;
 const LIVE = 't.deleted_at IS NULL';
 
@@ -159,8 +162,8 @@ function insertStmt(db: D1Database, uid: number, t: TransactionInput, dedupeKey:
   return db
     .prepare(
       `INSERT INTO transactions (user_id, date, amount_minor, type, description, category_id, bank, account_type,
-                                 account_last4, remark, dedupe_key)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                 account_last4, remark, dedupe_key, merchant)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL
        DO UPDATE SET deleted_at = NULL WHERE deleted_at IS NOT NULL`,
     )
@@ -176,6 +179,7 @@ function insertStmt(db: D1Database, uid: number, t: TransactionInput, dedupeKey:
       t.account_last4 ?? null,
       t.remark ?? null,
       dedupeKey,
+      normalizeMerchant(t.description) || null,
     );
 }
 
@@ -229,7 +233,10 @@ transactionRoutes.patch('/:id', async (c) => {
   if (body.date !== undefined) (sets.push('date = ?'), args.push(body.date));
   if (body.amount !== undefined) (sets.push('amount_minor = ?'), args.push(toMinor(body.amount)));
   if (body.type !== undefined) (sets.push('type = ?'), args.push(body.type));
-  if (body.description !== undefined) (sets.push('description = ?'), args.push(body.description));
+  if (body.description !== undefined) {
+    sets.push('description = ?', 'merchant = ?');
+    args.push(body.description, normalizeMerchant(body.description) || null);
+  }
   if (body.category_id !== undefined) (sets.push('category_id = ?'), args.push(body.category_id));
   if (body.remark !== undefined) (sets.push('remark = ?'), args.push(body.remark));
   if (body.account_last4 !== undefined) (sets.push('account_last4 = ?'), args.push(body.account_last4));

@@ -7,7 +7,7 @@
     "dev": "astro build && wrangler dev",
     "dev:ui": "astro dev",
     "build": "vitest run && astro check && astro build",
-    "typecheck": "astro check && tsc -p server/tsconfig.json --noEmit && tsc -p test/tsconfig.json",
+    "typecheck": "astro check && tsc -p server/tsconfig.json --noEmit && tsc -p test/tsconfig.json && tsc -p test/tsconfig.unit.json",
     "db:migrate:local": "wrangler d1 migrations apply finance-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply finance-db --remote",
     "deploy": "astro build && wrangler deploy",

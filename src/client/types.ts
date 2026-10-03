@@ -50,7 +50,12 @@ export type Transaction = {
   account_type: string | null;
   account_last4: string | null;
   remark: string | null;
+  merchant: string | null;
+  transfer_pair_id: number | null;
 };
+
+export type TransferSide = { id: number; date: string; description: string; bank: string | null; account_last4: string | null };
+export type TransferCandidate = { amount: number; debit: TransferSide; credit: TransferSide };
 
 export type NewTransaction = {
   date: string;

@@ -28,6 +28,39 @@ function similarity(a: string, b: string): number {
   return 1 - prev[b.length]! / Math.max(a.length, b.length);
 }
 
+export type Prepared = { words: string[]; padded: string; squashed: string };
+
+/** Normalised forms of a description, computed once and shared by every keyword check. */
+export function prepare(description: string): Prepared {
+  const words = normalize(description).split(' ').filter((w) => !IGNORED_WORDS.has(w));
+  return { words, padded: ` ${words.join(' ')} `, squashed: words.join('') };
+}
+
+/**
+ * Whole-word match for short keywords ("ola" must not match "cola"), substring match
+ * for long single words ("amazon" matches "amazonpay").
+ */
+function keywordMatches(kw: string, text: Prepared): boolean {
+  return text.padded.includes(` ${kw} `) || (kw.length >= 5 && !kw.includes(' ') && text.squashed.includes(kw));
+}
+
+/**
+ * One rule on its own, with the categoriser's matching (minus fuzzy matching), for rule
+ * counts and live previews. Takes the raw description and its prepare() result. Null if invalid.
+ */
+export function compileRule(rule: { keyword: string | null; regex: string | null }): ((raw: string, text: Prepared) => boolean) | null {
+  if (rule.regex) {
+    try {
+      const re = new RegExp(rule.regex, 'i');
+      return (raw) => re.test(raw);
+    } catch {
+      return null;
+    }
+  }
+  const kw = normalize(rule.keyword ?? '');
+  return kw ? (_raw, text) => keywordMatches(kw, text) : null;
+}
+
 type Rule = { categoryId: number; user: boolean };
 
 export class Categorizer {
@@ -58,17 +91,9 @@ export class Categorizer {
   categorize(description: string): number | null {
     for (const r of this.regexes) if (r.re.test(description)) return r.categoryId;
 
-    const text = normalize(description);
-    const words = text.split(' ').filter((w) => !IGNORED_WORDS.has(w));
-    const padded = ` ${words.join(' ')} `;
-    const squashed = words.join('');
-
-    for (const k of this.keywords) {
-      // Whole-word match for short keywords ("ola" must not match "cola"),
-      // substring match for long ones ("amazon" matches "amazonpay").
-      if (padded.includes(` ${k.kw} `)) return k.categoryId;
-      if (k.kw.length >= 5 && !k.kw.includes(' ') && squashed.includes(k.kw)) return k.categoryId;
-    }
+    const text = prepare(description);
+    const words = text.words;
+    for (const k of this.keywords) if (keywordMatches(k.kw, text)) return k.categoryId;
 
     // Fuzzy: catch typos/truncations like "swigy" or "zomat".
     let best: { id: number; score: number } | null = null;

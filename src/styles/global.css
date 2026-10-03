@@ -725,6 +725,9 @@ details.collapse > summary { flex-wrap: wrap; }
 .cat-body { margin-top: var(--space-3); }
 .kw-form { flex-wrap: nowrap; align-items: start; }
 .kw-field { flex: 1; }
+.pair-badge { margin-left: var(--space-2); }
+.pair-side { font-size: var(--text-sm); overflow-wrap: anywhere; }
+.reason { display: block; color: var(--positive); font-size: var(--text-xs); }
 
 /* -------------------------------------------------------------- keyboard -- */
 tr[tabindex]:focus { outline: none; }

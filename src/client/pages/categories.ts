@@ -5,6 +5,7 @@ import type { Category, CategoryKind } from '../types';
 import { button } from '../ui/button';
 import { bindForm, clearErrors, setFieldError, setValues } from '../ui/form';
 import { openDialog } from '../ui/modal';
+import { bindTabs } from '../ui/tabs';
 import { emptyState, errorState } from '../ui/table';
 import { toast, undoToast } from '../ui/toast';
 
@@ -180,6 +181,13 @@ $('#toggle-all').addEventListener('click', (e) => {
   }
   list.querySelectorAll<HTMLDetailsElement>('details').forEach((d) => (d.open = expand));
   btn.textContent = expand ? 'Collapse all' : 'Expand all';
+});
+
+bindTabs($('#cat-tabs'), (value) => {
+  $('#panel-categories').hidden = value !== 'categories';
+  $('#panel-rules').hidden = value !== 'rules';
+  // Recomputed on every visit, so rules added on the other tab are counted; transactions load once.
+  if (value === 'rules') void import('./rule-health').then((m) => m.showRuleHealth(categories));
 });
 
 void load();

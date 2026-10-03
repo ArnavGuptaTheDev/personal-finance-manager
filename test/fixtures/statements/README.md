@@ -6,7 +6,8 @@ git-ignored `samples/` folder).
 
 - `<name>.json` describes the file: the format to parse it with, and its rows (sheets) or lines (CSV).
   `{ "date": "2026-04-05" }` cells become real Excel date cells.
-- `<name>.expected.json` is the exact parser output. Fixtures with a balance column must
+- `<name>.expected.json` is the exact parser output, checked by hand (a failing run prints the actual
+  output to copy from). Fixtures with a balance column must
   have zero running-balance mismatches unless `"expectMismatches": true` is set.
 
 Adding a bank: add its entry to `src/client/parsers/formats.ts` and one fixture here.

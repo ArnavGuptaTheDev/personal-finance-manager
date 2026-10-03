@@ -1,14 +1,10 @@
 // Runs every statement fixture in test/fixtures/statements/ through the parser and
-// compares the result with its .expected.json. UPDATE_FIXTURES=1 rewrites the expected
-// files (review the diff before committing).
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+// compares the result with its .expected.json (the test diff shows the actual output
+// when a new fixture's expected file still needs writing).
 import { describe, expect, it } from 'vitest';
-import type { AccountType, Bank } from '../../src/client/parsers/statement';
+import type { AccountType, Bank, ParseResult } from '../../src/client/parsers/statement';
 import { parseStatement } from '../../src/client/parsers/statement';
 import { csv, d, workbook } from '../unit/statement-builders';
-
-const DIR = join(__dirname, '../fixtures/statements');
 
 type Fixture = {
   about: string;
@@ -19,8 +15,11 @@ type Fixture = {
     | { type: 'csv'; lines: string[]; encoding?: 'windows-1252'; name?: string };
 };
 
+const files = import.meta.glob<Fixture | ParseResult>('../fixtures/statements/*.json', { eager: true, import: 'default' });
+const fixtures = Object.keys(files).filter((path) => !path.endsWith('.expected.json'));
+
 /** Windows-1252 bytes for text in the Latin-1 range (enough for synthetic fixtures). */
-function cp1252(text: string): Uint8Array {
+function cp1252(text: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from([...text].map((ch) => {
     const code = ch.charCodeAt(0);
     if (code > 0xff) throw new Error(`Character ${ch} is outside the fixture encoder's range`);
@@ -39,20 +38,16 @@ function build(f: Fixture['file']): File {
   return f.name ? new File([file], f.name) : file;
 }
 
-const names = readdirSync(DIR).filter((n) => n.endsWith('.json') && !n.endsWith('.expected.json'));
-
 describe('statement fixtures', () => {
-  it('has fixtures', () => expect(names.length).toBeGreaterThan(0));
+  it('has fixtures', () => expect(fixtures.length).toBeGreaterThan(0));
 
-  it.each(names)('%s', async (name) => {
-    const fixture = JSON.parse(readFileSync(join(DIR, name), 'utf8')) as Fixture;
+  it.each(fixtures)('%s', async (path) => {
+    const fixture = files[path] as Fixture;
+    const expected = files[path.replace(/\.json$/, '.expected.json')] as ParseResult | undefined;
     const [bank, account] = fixture.format.split(':') as [Bank, AccountType];
     const result = await parseStatement(build(fixture.file), bank, account);
-    const expectedPath = join(DIR, name.replace(/\.json$/, '.expected.json'));
 
-    if (process.env.UPDATE_FIXTURES) writeFileSync(expectedPath, `${JSON.stringify(result, null, 2)}\n`);
-    expect(result).toEqual(JSON.parse(readFileSync(expectedPath, 'utf8')));
-
+    expect(result).toEqual(expected);
     if (result.balance && !fixture.expectMismatches) expect(result.balance.mismatches).toBe(0);
     if (fixture.expectMismatches) expect(result.balance?.mismatches).toBeGreaterThan(0);
   });

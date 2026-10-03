@@ -2,14 +2,14 @@ import { del, get, patch, post } from '../api';
 import { $, categoryOptions, errorMessage, formValues, h, replace } from '../dom';
 import { fmtDate, inr, moneyInput, parseMoney, parseNaturalDate, qs, signedInr } from '../format';
 import { loadCategories, pageHooks } from '../shell';
-import type { Category, Transaction } from '../types';
+import type { Category, Transaction, TransferCandidate } from '../types';
 import { button, linkButton } from '../ui/button';
 import { confirmDialog } from '../ui/confirm';
 import { categoryField, pickCategory, rememberCategory } from '../ui/category-picker';
 import { bindForm, clearErrors, naturalDateField, setValues } from '../ui/form';
 import { listNav } from '../ui/list-nav';
-import { openDialog } from '../ui/modal';
-import { emptyState, renderTable, tableError, td } from '../ui/table';
+import { createDialog, openDialog } from '../ui/modal';
+import { emptyState, renderList, renderTable, tableError, td } from '../ui/table';
 import { toast, undoToast } from '../ui/toast';
 
 type Page = { items: Transaction[]; total: number; totals: { debit: number; credit: number } };
@@ -86,6 +86,7 @@ async function load(f = currentFilters()) {
     updateBulk();
     renderSummary(page);
     renderRows();
+    void backfillMerchants();
   } catch (err) {
     if (seq === loadSeq) tableError(rowsEl, COLS, errorMessage(err), () => void load());
   }
@@ -124,15 +125,21 @@ function row(t: Transaction): HTMLTableRowElement {
   const cat = h('select', { 'aria-label': 'Category' }, ...categoryOptions(categories, t.category_id));
   cat.addEventListener('change', () => void setCategory(t, cat.value ? Number(cat.value) : null, cat));
 
-  const sub = [t.remark, sourceOf(t)].filter(Boolean).join(' · ');
+  // The merchant name leads; the raw bank description stays visible (and searchable) under it.
+  const sub = [t.merchant ? t.description : null, t.remark, sourceOf(t)].filter(Boolean).join(' · ');
   const tr = h('tr', { 'data-id': t.id, 'aria-label': describe(t) },
     td({ role: 'check' }, h('label', { class: 'check' }, check)),
     td({ role: 'meta', class: 'num' }, fmtDate(t.date)),
-    td({ role: 'primary', class: 'desc' }, t.description, sub && h('span', { class: 'cell-sub' }, sub)),
+    td({ role: 'primary', class: 'desc' },
+      t.merchant || t.description,
+      t.transfer_pair_id && h('span', { class: 'badge badge-brand pair-badge', title: 'Transfer between your own accounts: left out of income and spending' }, 'Transfer'),
+      sub && h('span', { class: 'cell-sub' }, sub),
+    ),
     td({ label: 'Category' }, cat),
     td({ role: 'amount', class: `right num ${t.type === 'credit' ? 'income' : ''}` }, signedInr(t.amount, t.type)),
     td({ role: 'actions' },
       h('div', { class: 'row' },
+        t.transfer_pair_id ? button('Unpair', { variant: 'ghost', size: 'sm', onClick: () => void unpair(t.transfer_pair_id!) }) : null,
         button('Edit', { variant: 'ghost', size: 'sm', onClick: () => openEditor(t) }),
         button('Delete', { variant: 'ghost-danger', size: 'sm', onClick: () => void remove(t) }),
       ),
@@ -142,7 +149,7 @@ function row(t: Transaction): HTMLTableRowElement {
 }
 
 function describe(t: Transaction) {
-  return `${t.description}, ${signedInr(t.amount, t.type)}, ${fmtDate(t.date)}, ${t.category_name ?? 'Uncategorized'}`;
+  return `${t.merchant || t.description}, ${signedInr(t.amount, t.type)}, ${fmtDate(t.date)}, ${t.category_name ?? 'Uncategorized'}`;
 }
 
 function rowEl(id: number) {
@@ -167,9 +174,124 @@ async function setCategory(t: Transaction, categoryId: number | null, select?: H
     toast(`Moved to ${updated.category_name ?? 'Uncategorized'}`, {
       action: { label: 'Undo', run: async () => replaceItem(await patch<Transaction>(`/transactions/${t.id}`, { category_id: previous })) },
     });
+    if (updated.merchant && categoryId !== null) void offerRule(updated.merchant, categoryId);
   } catch (err) {
     if (select) select.value = previous ? String(previous) : '';
     toast(errorMessage(err), 'error');
+  }
+}
+
+/** After a correction: "Always put Swiggy in Food? 12 other transactions will change." */
+async function offerRule(merchant: string, categoryId: number) {
+  const category = categories.find((c) => c.id === categoryId);
+  if (!category || merchant.length < 2) return;
+  const preview = await get<{ matches: number; changes: number }>(`/transactions/rule-preview${qs({ merchant, category_id: categoryId })}`).catch(() => null);
+  if (!preview?.changes) return;
+  toast(`Always put ${merchant} in ${category.name}? ${preview.changes} other transaction${preview.changes === 1 ? '' : 's'} will change.`, {
+    action: {
+      label: 'Always',
+      run: async () => {
+        const keyword = merchant.toLowerCase();
+        // The rule also sorts future imports; skip it if this category already has it.
+        if (!category.keywords.some((k) => k.keyword === keyword)) {
+          const k = await post<Category['keywords'][number]>(`/categories/${categoryId}/keywords`, { keyword });
+          category.keywords.push(k);
+        }
+        const res = await post<{ updated: number }>('/transactions/apply-rule', { merchant, category_id: categoryId });
+        toast(`Rule added; moved ${res.updated} transaction${res.updated === 1 ? '' : 's'} to ${category.name}`);
+        await load();
+      },
+    },
+  });
+}
+
+// ---- transfers between your own accounts ----
+
+async function unpair(pairId: number) {
+  try {
+    await del(`/transactions/pairs/${pairId}`);
+  } catch (err) {
+    toast(errorMessage(err), 'error');
+    return;
+  }
+  toast('No longer marked as a transfer; check the two categories');
+  await load();
+}
+
+async function findTransfers() {
+  let candidates: TransferCandidate[];
+  try {
+    candidates = await get<TransferCandidate[]>('/transactions/pairs');
+  } catch (err) {
+    toast(errorMessage(err), 'error');
+    return;
+  }
+  const side = (s: TransferCandidate['debit'], label: string) =>
+    h('div', { class: 'pair-side' },
+      h('span', { class: 'cell-sub' }, `${label} · ${fmtDate(s.date)} · ${[s.bank?.toUpperCase(), s.account_last4 && `••${s.account_last4}`].filter(Boolean).join(' ') || 'no account'}`),
+      s.description,
+    );
+  const list = h('ul', { class: 'plain-list' });
+  const close = button('Close');
+  close.dataset.close = '';
+  const dialog = createDialog('dialog-form',
+    h('div', { class: 'form' },
+      h('h2', null, 'Transfers between your accounts'),
+      h('p', { class: 'muted small' },
+        'A debit and a credit of the same amount on two of your accounts within three days. Marking them as a pair leaves both out of income and spending.'),
+      list,
+      h('div', { class: 'form-actions' }, close),
+    ),
+  );
+  const paint = () =>
+    renderList(list, candidates, (p) => {
+      const mark = (kind: 'self_transfer' | 'card_payment') => async () => {
+        try {
+          const before = [p.debit.id, p.credit.id].map((id) => ({ id, category_id: items.find((x) => x.id === id)?.category_id ?? null }));
+          const made = await post<{ pair_id: number }>('/transactions/pairs', { debit_id: p.debit.id, credit_id: p.credit.id, kind });
+          candidates = candidates.filter((c) => c !== p);
+          paint();
+          void load();
+          undoToast('Marked as a transfer', async () => {
+            await del(`/transactions/pairs/${made.pair_id}`);
+            for (const b of before) if (items.some((x) => x.id === b.id)) await patch(`/transactions/${b.id}`, { category_id: b.category_id });
+            await load();
+          });
+        } catch (err) {
+          toast(errorMessage(err), 'error');
+        }
+      };
+      return h('li', { class: 'stack-sm' },
+        h('div', { class: 'row' }, h('strong', { class: 'num' }, inr(p.amount)), h('span', { class: 'spacer' }),
+          button('Self transfer', { size: 'sm', onClick: mark('self_transfer') }),
+          button('Card payment', { size: 'sm', onClick: mark('card_payment') }),
+        ),
+        side(p.debit, 'Out'),
+        side(p.credit, 'In'),
+      );
+    }, 'No likely transfers found.');
+  paint();
+  dialog.showModal();
+}
+
+$('#find-transfers').addEventListener('click', () => void findTransfers());
+
+// ---- merchant names for rows saved before they existed ----
+
+let backfilling = false;
+async function backfillMerchants() {
+  if (backfilling || !items.some((t) => t.merchant === null)) return;
+  backfilling = true;
+  try {
+    for (let i = 0; i < 50; i++) {
+      const res = await post<{ updated: number; remaining: number }>('/transactions/merchants/backfill', {});
+      if (!res.remaining || !res.updated) break;
+    }
+    await load();
+  } catch {
+    /* names stay as descriptions; nothing is lost */
+  } finally {
+    backfilling = false;
   }
 }
 

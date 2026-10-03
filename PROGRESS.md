@@ -15,7 +15,9 @@ Applying it touches production, so I have not done it. Commits are kept **local*
 Pending migrations (all additive; no existing column or row is changed):
 
 - `0003_soft_delete.sql`: a nullable `deleted_at` column on 8 tables, plus partial indexes;
-- `0004_import_formats.sql`: a new `import_formats` table for saved column mappings.
+- `0004_import_formats.sql`: a new `import_formats` table for saved column mappings;
+- `0005_merchant_and_pairs.sql`: nullable `merchant` and `transfer_pair_id` columns on `transactions`, plus
+  indexes. Older rows get their merchant filled in by the app the next time you open Transactions.
 
 ## Done
 
@@ -73,13 +75,29 @@ Pending migrations (all additive; no existing column or row is changed):
     `test/parsers/fixtures.test.ts`; every fixture with a balance column has zero mismatches (one fixture
     deliberately drops a row to prove mismatches are caught).
 
+- **Phase 4** (committed locally):
+  - Merchant normaliser (`src/client/merchant.ts`, shared by Worker and browser; unit tests on statement-
+    style samples). Stored in `merchant` on create, import and description edits; older rows backfilled in
+    batches. Transactions shows the merchant with the raw description under it (F2).
+  - After a category change: "Always put Swiggy in Food? N other transactions will change" with an
+    Always button; adds the keyword rule and applies it (F3). Preview and apply share one SQL condition;
+    a test checks the counts match.
+  - Import review: rows no rule sorts get the category you chose most often for that merchant, with the
+    reason shown ("Food & Dining · you chose this for Swiggy 7 times").
+  - Categories → Rule health tab: match count per rule, conflicts, your rules that never match, and a
+    live "test a rule" preview (keywords and regexes evaluated in the browser).
+  - Transfer pairing (F8): "Find transfers" on Transactions lists same-amount debit/credit pairs on two
+    of your accounts within 3 days; mark as Self transfer or Card payment (Undo restores the categories);
+    paired rows show a Transfer badge and an Unpair button and are left out of totals and budgets even if
+    recategorised. Tests for finding, confirming, totals and isolation.
+
 ## In progress
 
-- Phase 4: categorisation that learns.
+- Phase 7: audit log retention (and the 30-day purge of soft-deleted rows).
 
 ## Next
 
-- Phase 7 (audit retention + purge).
+- Final summary.
 
 ## Decisions made on your behalf
 
@@ -111,6 +129,14 @@ Pending migrations (all additive; no existing column or row is changed):
 - Phase 3: rows imported with a hand-mapped format store the format's name (slugged) as `bank`; unsaved
   mappings store `other`. The mapping UI handles single-row headers only (built-in formats handle two-row
   ones). Saved formats are soft-deleted like everything else, so they get Undo and the 30-day purge.
+- Phase 4: rules from corrections and history suggestions key on the merchant name, so they never
+  overwrite rows in a transfer pair. "Always" changes every live row with that merchant that is in a
+  different category (the preview says how many first). Merchant names are capped at three words; card
+  descriptions that end in a city keep it ("Amazon Pay Mumbai") until real statements show a pattern.
+- The rule-health counts use the categoriser's keyword and regex matching but not its fuzzy matching,
+  so a typo-tolerant match during import won't show up as a match there.
+- `npm run typecheck` was failing since Phase 2 (Worker types clash with DOM types in the browser-module
+  tests); those tests now have their own `test/tsconfig.unit.json`, and the script checks both.
 - Node's `windows-1252` decoder maps 0x80–0x9F as Latin-1, so the parser maps that range itself (€, smart
   quotes, dashes) to behave the same in every browser.
 

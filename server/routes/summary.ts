@@ -8,8 +8,9 @@ import { idParam, isoDate, money, notFound, readJson } from '../lib/validate';
 import { allowedCategoryIds } from './categories';
 
 // Transactions in 'transfer' categories (card bill payments, investments, moving
-// money between own accounts) are excluded from income/spend so nothing is double counted.
-const NOT_TRANSFER = `(c.kind IS NULL OR c.kind <> 'transfer')`;
+// money between own accounts) and confirmed transfer pairs are excluded from
+// income/spend so nothing is double counted.
+const NOT_TRANSFER = `((c.kind IS NULL OR c.kind <> 'transfer') AND t.transfer_pair_id IS NULL)`;
 
 export const summaryRoutes = new Hono<AppEnv>();
 
@@ -81,7 +82,7 @@ budgetRoutes.get('/', async (c) => {
   const { results } = await c.env.DB.prepare(
     `SELECT b.id, b.category_id, c.name, b.amount_minor,
             MAX(0, COALESCE((SELECT SUM(CASE WHEN t.type = 'debit' THEN t.amount_minor ELSE -t.amount_minor END) FROM transactions t
-                       WHERE t.user_id = b.user_id AND t.category_id = b.category_id AND t.deleted_at IS NULL
+                       WHERE t.user_id = b.user_id AND t.category_id = b.category_id AND t.deleted_at IS NULL AND t.transfer_pair_id IS NULL
                          AND substr(t.date, 1, 7) = ?2), 0)) AS spent_minor
        FROM budgets b JOIN categories c ON c.id = b.category_id AND c.deleted_at IS NULL
       WHERE b.user_id = ?1 AND b.deleted_at IS NULL ORDER BY c.name COLLATE NOCASE`,

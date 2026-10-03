@@ -2,6 +2,7 @@ import { del, get, patch, post } from '../api';
 import { Categorizer } from '../categorize';
 import { $, categoryOptions, errorMessage, formValues, h, replace, run } from '../dom';
 import { fmtDate, inr, signedInr } from '../format';
+import { normalizeMerchant } from '../merchant';
 import { mappingProblem, mappingToFormat, type ColumnMapping } from '../parsers/formats';
 import type { MappingChoice, MappingRole } from '../parsers/mapping';
 import type { AccountType, Bank, ParsedRow, ParseResult, SkippedRow } from '../parsers/statement';
@@ -15,7 +16,8 @@ import { toast, undoToast } from '../ui/toast';
 
 type Match = { id: number; date: string; description: string; type: 'debit' | 'credit'; account_last4: string | null };
 type Reconciled = { status: 'new' | 'duplicate' | 'changed'; match?: Match; changes?: string[] };
-type Draft = ParsedRow & Reconciled & { category_id: number | null; include: boolean; fix: boolean };
+/** reason: why a category was suggested from your history ("you chose this for Swiggy 7 times"). */
+type Draft = ParsedRow & Reconciled & { category_id: number | null; include: boolean; fix: boolean; reason?: string };
 type SavedFormat = { id: number; name: string; mapping: ColumnMapping };
 
 const form = $<HTMLFormElement>('#parse-form');
@@ -123,12 +125,14 @@ function render() {
       const select = h('select', { 'aria-label': 'Category' }, ...categoryOptions(categories, d.category_id));
       select.addEventListener('change', () => {
         d.category_id = select.value ? Number(select.value) : null;
+        d.reason = undefined;
+        tr.querySelector('.reason')?.remove();
         rememberCategory(d.category_id);
       });
       tr.append(
         td({ role: 'check' }, h('label', { class: 'check' }, box)),
         td({ role: 'meta', class: 'num' }, fmtDate(d.date)),
-        td({ role: 'primary', class: 'desc' }, d.description, statusLabel(d) && h('div', null, statusLabel(d)), d.note && h('div', { class: 'small spend' }, d.note)),
+        td({ role: 'primary', class: 'desc' }, d.description, statusLabel(d) && h('div', null, statusLabel(d)), d.reason && h('span', { class: 'reason' }, d.reason), d.note && h('div', { class: 'small spend' }, d.note)),
         td({ label: 'Category' }, select),
         td({ role: 'amount', class: `right num ${d.type === 'credit' ? 'income' : ''}` }, signedInr(d.amount, d.type)),
       );
@@ -230,7 +234,25 @@ async function reconcile() {
       fix: rec.status === 'changed',
     };
   });
+  await suggestFromHistory();
   render();
+}
+
+/** Rows no rule could sort get the category you most often chose for the same merchant. */
+async function suggestFromHistory() {
+  const open = drafts.filter((d) => d.category_id === null && d.status === 'new');
+  const merchants = [...new Set(open.map((d) => normalizeMerchant(d.description)).filter((m) => m.length >= 2))].slice(0, 300);
+  if (!merchants.length) return;
+  const { suggestions } = await post<{ suggestions: Record<string, { category_id: number; name: string; times: number }> }>('/transactions/suggest', { merchants }).catch(
+    () => ({ suggestions: {} as Record<string, { category_id: number; name: string; times: number }> }),
+  );
+  for (const d of open) {
+    const merchant = normalizeMerchant(d.description);
+    const s = suggestions[merchant.toLowerCase()];
+    if (!s) continue;
+    d.category_id = s.category_id;
+    d.reason = `${s.name} · you chose this for ${merchant} ${s.times} time${s.times === 1 ? '' : 's'}`;
+  }
 }
 
 $<HTMLInputElement>('#last4').addEventListener('change', (e) => {
@@ -395,6 +417,8 @@ listNav(tbody, {
         const id = await pickCategory(categories, `Category for ${d.description.slice(0, 40)}`);
         if (id !== undefined) {
           d.category_id = id;
+          d.reason = undefined;
+          row.querySelector('.reason')?.remove();
           const select = row.querySelector('select');
           if (select) select.value = id == null ? '' : String(id);
         }
