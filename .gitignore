@@ -6,3 +6,11 @@ dist/
 .env
 *.log
 .DS_Store
+.env*
+.dev.vars*
+!.dev.vars.example
+*.sqlite
+*.sqlite3
+*.db
+# Real bank statements (even anonymised) never enter the repo; use them locally only.
+samples/
