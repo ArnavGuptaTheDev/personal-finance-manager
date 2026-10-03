@@ -28,6 +28,56 @@ export function today(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+function isoOf(y: number, m: number, d: number): string | null {
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  return dt.toISOString().slice(0, 10);
+}
+
+function monthNumber(word: string): number | null {
+  if (word.length < 3) return null;
+  const i = MONTHS.findIndex((m) => word.startsWith(m));
+  return i < 0 ? null : i + 1;
+}
+
+/**
+ * Reads typed dates: "today", "yesterday", "3/10", "3-10-26", "3 Oct", "3rd October 2026",
+ * "Oct 3", "2026-10-03". Numeric dates are always day first. Without a year, a date more
+ * than a month ahead is taken as last year's (typing "28/12" in January). Null if unreadable.
+ */
+export function parseNaturalDate(raw: string, todayIso = today()): string | null {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, ' ').replace(/,/g, '');
+  if (!s) return null;
+  const [ty, tm, td] = todayIso.split('-').map(Number) as [number, number, number];
+  const offset = (days: number) => new Date(Date.UTC(ty, tm - 1, td + days)).toISOString().slice(0, 10);
+  if (s === 'today' || s === 'tod') return todayIso;
+  if (s === 'yesterday' || s === 'yday') return offset(-1);
+  if (s === 'tomorrow') return offset(1);
+
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return isoOf(Number(m[1]), Number(m[2]), Number(m[3]));
+
+  let day: number;
+  let month: number | null;
+  let year: string | undefined;
+  if ((m = s.match(/^(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2}|\d{4}))?$/))) {
+    [day, month, year] = [Number(m[1]), Number(m[2]), m[3]];
+  } else if ((m = s.match(/^(\d{1,2})(?:st|nd|rd|th)? ([a-z]+)\.?(?: (\d{2}|\d{4}))?$/))) {
+    [day, month, year] = [Number(m[1]), monthNumber(m[2]!), m[3]];
+  } else if ((m = s.match(/^([a-z]+)\.? (\d{1,2})(?:st|nd|rd|th)?(?: (\d{4}))?$/))) {
+    [day, month, year] = [Number(m[2]), monthNumber(m[1]!), m[3]];
+  } else {
+    return null;
+  }
+  if (!month) return null;
+  if (year) return isoOf(year.length === 2 ? 2000 + Number(year) : Number(year), month, day);
+  const iso = isoOf(ty, month, day);
+  if (iso && iso > offset(31)) return isoOf(ty - 1, month, day);
+  return iso;
+}
+
 export function addMonths(iso: string, months: number): string {
   const [y, m] = iso.split('-').map(Number) as [number, number];
   const d = new Date(Date.UTC(y, m - 1 + months, 1));

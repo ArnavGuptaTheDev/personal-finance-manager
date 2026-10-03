@@ -48,13 +48,20 @@ indexes; no existing column or row is changed).
   - F1 (filtered totals on Transactions) and F10 (Active / Settled / All tabs on Loans) folded in.
   - Privacy policy: added that deleted records are kept up to 30 days for undo, then erased.
 
+- **Phase 2** (committed locally): one shortcut manager (`ui/keys.ts`, off while typing or in a dialog, unit
+  tested); Ctrl/Cmd+K palette (pages, actions, recent categories, fuzzy match); `g d/t/i/b`, `n`, `/`, `?`
+  help overlay listing every shortcut; Transactions list `j/k`/arrows roving focus with announcements, `x`,
+  `e`/Enter, `c` (category type-ahead), Delete (with Undo); quick-add with typed day-first dates (resolved
+  date shown under the field), category type-ahead, Save and add another (Ctrl+Enter); Import review uses
+  the same list keys (`x` include, `c` category).
+
 ## In progress
 
-- Phase 2: keyboard-first data entry.
+- Phase 3: statement parsing (synthetic fixtures only).
 
 ## Next
 
-- Phase 3 (parsing, synthetic fixtures only), Phase 4 (categorisation), Phase 7 (audit retention + purge).
+- Phase 4 (categorisation), Phase 7 (audit retention + purge).
 
 ## Decisions made on your behalf
 
@@ -78,6 +85,11 @@ indexes; no existing column or row is changed).
 - Re-importing a statement brings back deleted (not yet purged) rows instead of adding copies.
 - The JSON export leaves out records in the 30-day undo window.
 - The 409 for a duplicate category name is now `name: …` so it shows under the field.
+- Phase 2: "No shortcut fires while typing" is strict: even Ctrl+K is ignored inside a text field. Arrow keys
+  only move between rows once a row has focus, so they still scroll the page otherwise. Recently used
+  categories are kept as ids in `sessionStorage` (this tab only). The palette's "< 50 ms" is by design
+  (built once, no network on open) but not measured, since that needs a browser run.
+- Without a year, a typed date more than a month ahead is read as last year ("28/12" typed in January).
 
 ## Needs real statements (Phase 3)
 

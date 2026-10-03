@@ -7,8 +7,10 @@
 // background when older than REVALIDATE_MS; any API call still 401s if access is gone.
 import { api, get } from './api';
 import { run } from './dom';
-import { openDialog } from './ui/modal';
 import type { Category, User } from './types';
+import { keymap, listen } from './ui/keys';
+import { openDialog } from './ui/modal';
+import { addCommands, addCommandSource, openHelp, openPalette, setCategorySource } from './ui/palette';
 
 export const ME_CACHE_KEY = 'pfm.me';
 const REVALIDATE_MS = 5 * 60 * 1000;
@@ -87,3 +89,43 @@ document.querySelectorAll<HTMLButtonElement>('[data-logout]').forEach((btn) =>
 
 const moreSheet = document.getElementById('more-sheet') as HTMLDialogElement | null;
 document.getElementById('more-btn')?.addEventListener('click', () => moreSheet && openDialog(moreSheet));
+
+// ---- keyboard ----
+
+/** Set by a page that can open its own new-transaction form (Transactions). */
+export const pageHooks: { newTransaction?: () => void } = {};
+
+const go = (path: string) => () => (location.href = path);
+const newTransaction = () => (pageHooks.newTransaction ? pageHooks.newTransaction() : go('/app/transactions/?new=1')());
+function focusSearch() {
+  const el = document.querySelector<HTMLInputElement>('[data-search]');
+  if (!el) return;
+  el.closest('.filters')?.classList.add('is-open');
+  el.focus();
+  el.select();
+}
+
+listen();
+keymap.add(
+  { keys: 'mod+k', description: 'Open the command palette', group: 'Anywhere', run: openPalette },
+  { keys: 'g d', description: 'Go to Dashboard', group: 'Anywhere', run: go('/app/') },
+  { keys: 'g t', description: 'Go to Transactions', group: 'Anywhere', run: go('/app/transactions/') },
+  { keys: 'g i', description: 'Go to Import', group: 'Anywhere', run: go('/app/import/') },
+  { keys: 'g b', description: 'Go to Budgets', group: 'Anywhere', run: go('/app/budgets/') },
+  { keys: 'n', description: 'New transaction', group: 'Anywhere', run: newTransaction },
+  { keys: '/', description: 'Search this page', group: 'Anywhere', run: focusSearch, when: () => document.querySelector('[data-search]') !== null },
+  { keys: '?', description: 'Show keyboard shortcuts', group: 'Anywhere', run: openHelp },
+);
+
+addCommandSource(() =>
+  [...document.querySelectorAll<HTMLAnchorElement>('.nav a')]
+    .filter((a) => !a.hidden)
+    .map((a) => ({ label: a.textContent?.trim() ?? '', group: 'Pages', run: go(a.getAttribute('href') ?? '/app/') })),
+);
+addCommands(
+  { label: 'New transaction', group: 'Actions', hint: 'N', run: newTransaction },
+  { label: 'Import a statement', group: 'Actions', run: go('/app/import/') },
+  { label: 'Keyboard shortcuts', group: 'Actions', hint: '?', run: openHelp },
+  { label: 'Sign out', group: 'Actions', run: () => document.querySelector<HTMLButtonElement>('[data-logout]')?.click() },
+);
+setCategorySource(() => loadCategories());

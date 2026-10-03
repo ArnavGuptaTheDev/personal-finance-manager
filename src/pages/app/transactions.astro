@@ -21,7 +21,7 @@ const typeOptions = [
 
   <div class="stack">
     <form id="filters" class="card filters" role="search">
-      <Field label="Search" name="q" type="search" placeholder="Description or remark" maxlength="100" />
+      <Field label="Search" name="q" type="search" placeholder="Description or remark" maxlength="100" data-search />
       <Select label="Category" name="category" id="filter-category" options={[{ value: '', label: 'All categories' }]} />
       <Select label="Type" name="type" options={typeOptions} />
       <Field label="From" name="from" type="date" />
@@ -67,7 +67,7 @@ const typeOptions = [
     <form id="txn-form" class="form">
       <h2 id="txn-dialog-title">Add transaction</h2>
       <div class="form-row keep-2">
-        <Field label="Date" name="date" type="date" required />
+        <Field label="Date" name="date" required autocomplete="off" data-date placeholder="today, 3/10, 3 Oct" hint="Day first: today, 3/10, 3 Oct" />
         <Field label="Amount (₹)" name="amount" money required placeholder="0.00" />
       </div>
       <div class="form-row">
@@ -79,13 +79,20 @@ const typeOptions = [
             { value: 'credit', label: 'Credit (money in)' },
           ]}
         />
-        <Select label="Category" name="category_id" id="txn-category" />
+        <label class="field" id="txn-category-field">
+          <span>Category</span>
+          <div class="typeahead"><input data-typeahead placeholder="Type to search" /></div>
+          <input type="hidden" name="category_id" />
+          <span class="field-error"></span>
+        </label>
       </div>
       <Field label="Description" name="description" required maxlength="500" />
       <Field label="Remark" name="remark" maxlength="500" placeholder="Optional note" />
       <div class="form-actions">
         <Button data-close>Cancel</Button>
-        <Button variant="primary" type="submit">Save</Button>
+        <!-- Save comes first in the DOM so Enter (implicit submission) means Save; CSS puts it last. -->
+        <Button variant="primary" type="submit" class="order-last">Save</Button>
+        <Button type="submit" id="txn-another" title="Ctrl + Enter">Save and add another</Button>
       </div>
     </form>
   </dialog>

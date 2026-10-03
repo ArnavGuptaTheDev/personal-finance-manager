@@ -5,6 +5,8 @@ import { fmtDate, inr, signedInr } from '../format';
 import type { AccountType, Bank, ParsedRow, SkippedRow } from '../parsers/statement';
 import { loadCategories } from '../shell';
 import type { Category, NewTransaction } from '../types';
+import { pickCategory, rememberCategory } from '../ui/category-picker';
+import { listNav } from '../ui/list-nav';
 import { td } from '../ui/table';
 import { toast } from '../ui/toast';
 
@@ -96,8 +98,8 @@ function render() {
 
   replace(
     tbody,
-    ...drafts.map((d) => {
-      const tr = h('tr', { 'data-muted': !d.include });
+    ...drafts.map((d, i) => {
+      const tr = h('tr', { 'data-muted': !d.include, 'data-id': i, 'aria-label': `${d.description}, ${signedInr(d.amount, d.type)}, ${fmtDate(d.date)}` });
       const box = h('input', { type: 'checkbox', checked: d.include, 'aria-label': 'Include' });
       box.addEventListener('change', () => {
         d.include = box.checked;
@@ -105,7 +107,10 @@ function render() {
         updateSaveLabel();
       });
       const select = h('select', { 'aria-label': 'Category' }, ...categoryOptions(categories, d.category_id));
-      select.addEventListener('change', () => (d.category_id = select.value ? Number(select.value) : null));
+      select.addEventListener('change', () => {
+        d.category_id = select.value ? Number(select.value) : null;
+        rememberCategory(d.category_id);
+      });
       tr.append(
         td({ role: 'check' }, h('label', { class: 'check' }, box)),
         td({ role: 'meta', class: 'num' }, fmtDate(d.date)),
@@ -190,6 +195,30 @@ form.addEventListener('submit', (e) => {
 allBox.addEventListener('change', () => {
   drafts.forEach((d) => (d.include = allBox.checked));
   render();
+});
+
+listNav(tbody, {
+  group: 'Import review',
+  when: () => !preview.hidden,
+  describe: (row) => `${row.getAttribute('aria-label') ?? ''}, ${row.dataset.muted === 'true' ? 'not included' : 'included'}`,
+  actions: [
+    { keys: 'x', description: 'Include or skip the row', run: (row) => row.querySelector<HTMLInputElement>('td[data-cell=check] input')?.click() },
+    {
+      keys: 'c',
+      description: 'Change the category',
+      run: async (row) => {
+        const d = drafts[Number(row.dataset.id)];
+        if (!d) return;
+        const id = await pickCategory(categories, `Category for ${d.description.slice(0, 40)}`);
+        if (id !== undefined) {
+          d.category_id = id;
+          const select = row.querySelector('select');
+          if (select) select.value = id == null ? '' : String(id);
+        }
+        row.focus();
+      },
+    },
+  ],
 });
 
 function resetImport() {

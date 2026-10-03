@@ -2,7 +2,7 @@
 // "field: message" errors, shown inline under the field; focus moves to the first error.
 import { ApiError } from '../api';
 import { errorMessage, formValues } from '../dom';
-import { parseMoney } from '../format';
+import { fmtDate, parseMoney, parseNaturalDate } from '../format';
 import { toast } from './toast';
 
 type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
@@ -35,6 +35,9 @@ function validate(form: HTMLFormElement): Control | null {
   for (const el of controls(form)) {
     if (el instanceof HTMLInputElement && el.dataset.money !== undefined && el.value.trim()) {
       el.setCustomValidity(Number.isNaN(parseMoney(el.value)) ? 'Enter an amount like 1,234.50' : '');
+    }
+    if (el instanceof HTMLInputElement && el.dataset.date !== undefined && el.value.trim()) {
+      el.setCustomValidity(parseNaturalDate(el.value) ? '' : 'Enter a date like today, 3/10 or 3 Oct (day first)');
     }
     if (!el.checkValidity()) {
       setFieldError(el, el.validationMessage);
@@ -88,6 +91,22 @@ export function bindForm(form: HTMLFormElement, onSubmit: (values: Record<string
       if (submit) submit.disabled = false;
     }
   });
+}
+
+/**
+ * A typed-date field (data-date): shows the date it resolves to in the field's hint,
+ * so "3/10" visibly means 3 October.
+ */
+export function naturalDateField(input: HTMLInputElement) {
+  const hint = input.closest('.field')?.querySelector<HTMLElement>('.field-hint');
+  const update = () => {
+    if (!hint) return;
+    const iso = input.value.trim() ? parseNaturalDate(input.value) : null;
+    hint.textContent = !input.value.trim() ? 'Day first: today, 3/10, 3 Oct' : iso ? `= ${fmtDate(iso)}` : 'Not a date yet (day first)';
+  };
+  input.addEventListener('input', update);
+  update();
+  return update;
 }
 
 export function setValues(form: HTMLFormElement, values: Record<string, string | number | null | undefined>) {

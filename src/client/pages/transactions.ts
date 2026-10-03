@@ -1,11 +1,13 @@
 import { del, get, patch, post } from '../api';
 import { $, categoryOptions, errorMessage, formValues, h, replace } from '../dom';
-import { fmtDate, inr, moneyInput, parseMoney, qs, signedInr, today } from '../format';
-import { loadCategories } from '../shell';
+import { fmtDate, inr, moneyInput, parseMoney, parseNaturalDate, qs, signedInr } from '../format';
+import { loadCategories, pageHooks } from '../shell';
 import type { Category, Transaction } from '../types';
 import { button, linkButton } from '../ui/button';
 import { confirmDialog } from '../ui/confirm';
-import { bindForm, clearErrors, setValues } from '../ui/form';
+import { categoryField, pickCategory, rememberCategory } from '../ui/category-picker';
+import { bindForm, clearErrors, naturalDateField, setValues } from '../ui/form';
+import { listNav } from '../ui/list-nav';
 import { openDialog } from '../ui/modal';
 import { emptyState, renderTable, tableError, td } from '../ui/table';
 import { toast, undoToast } from '../ui/toast';
@@ -25,7 +27,10 @@ let items: Transaction[] = [];
 let offset = 0;
 let total = 0;
 let editing: Transaction | null = null;
+let addAnother = false;
 const selected = new Set<number>();
+const setTxnCategory = categoryField($('#txn-category-field'), () => categories);
+const refreshDateHint = naturalDateField(txnForm.elements.namedItem('date') as HTMLInputElement);
 
 function currentFilters() {
   const v = formValues(filtersForm);
@@ -120,7 +125,7 @@ function row(t: Transaction): HTMLTableRowElement {
   cat.addEventListener('change', () => void setCategory(t, cat.value ? Number(cat.value) : null, cat));
 
   const sub = [t.remark, sourceOf(t)].filter(Boolean).join(' · ');
-  const tr = h('tr', { 'data-id': t.id },
+  const tr = h('tr', { 'data-id': t.id, 'aria-label': describe(t) },
     td({ role: 'check' }, h('label', { class: 'check' }, check)),
     td({ role: 'meta', class: 'num' }, fmtDate(t.date)),
     td({ role: 'primary', class: 'desc' }, t.description, sub && h('span', { class: 'cell-sub' }, sub)),
@@ -134,6 +139,10 @@ function row(t: Transaction): HTMLTableRowElement {
     ),
   );
   return tr;
+}
+
+function describe(t: Transaction) {
+  return `${t.description}, ${signedInr(t.amount, t.type)}, ${fmtDate(t.date)}, ${t.category_name ?? 'Uncategorized'}`;
 }
 
 function rowEl(id: number) {
@@ -151,7 +160,10 @@ async function setCategory(t: Transaction, categoryId: number | null, select?: H
   const previous = t.category_id;
   try {
     const updated = await patch<Transaction>(`/transactions/${t.id}`, { category_id: categoryId });
+    rememberCategory(categoryId);
+    const hadFocus = rowEl(t.id)?.contains(document.activeElement);
     replaceItem(updated);
+    if (hadFocus) rowEl(t.id)?.focus();
     toast(`Moved to ${updated.category_name ?? 'Uncategorized'}`, {
       action: { label: 'Undo', run: async () => replaceItem(await patch<Transaction>(`/transactions/${t.id}`, { category_id: previous })) },
     });
@@ -197,20 +209,25 @@ function openEditor(t: Transaction | null) {
   txnForm.reset();
   clearErrors(txnForm);
   $('#txn-dialog-title').textContent = t ? 'Edit transaction' : 'Add transaction';
-  replace($('#txn-category'), ...categoryOptions(categories, t?.category_id ?? null));
+  $('#txn-another').hidden = Boolean(t);
+  setTxnCategory(t?.category_id ?? null);
   setValues(txnForm, {
-    date: t?.date ?? today(),
+    date: t ? fmtDate(t.date) : 'today',
     amount: t ? moneyInput(t.amount) : '',
     type: t?.type ?? 'debit',
     description: t?.description ?? '',
     remark: t?.remark ?? '',
   });
+  refreshDateHint();
   openDialog(dialog);
+  if (!t) (txnForm.elements.namedItem('amount') as HTMLInputElement).focus();
 }
 
 bindForm(txnForm, async (v) => {
+  const another = addAnother;
+  addAnother = false;
   const body = {
-    date: v.date,
+    date: parseNaturalDate(v.date ?? ''),
     amount: parseMoney(v.amount ?? ''),
     type: v.type,
     description: v.description,
@@ -224,9 +241,28 @@ bindForm(txnForm, async (v) => {
     void refreshSummary();
   } else {
     await post('/transactions', { ...body, account_type: 'cash' });
-    dialog.close();
+    rememberCategory(body.category_id);
     toast('Transaction added');
-    await load();
+    if (another) {
+      // Keep date and type; clear the rest and start again at the amount.
+      setValues(txnForm, { amount: '', description: '', remark: '' });
+      setTxnCategory(null);
+      clearErrors(txnForm);
+      (txnForm.elements.namedItem('amount') as HTMLInputElement).focus();
+      void load();
+    } else {
+      dialog.close();
+      await load();
+    }
+  }
+});
+
+$('#txn-another').addEventListener('click', () => (addAnother = true));
+txnForm.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !editing) {
+    e.preventDefault();
+    addAnother = true;
+    txnForm.requestSubmit();
   }
 });
 
@@ -321,8 +357,43 @@ $('#next').addEventListener('click', () => {
   void load();
 });
 
+pageHooks.newTransaction = () => openEditor(null);
+
+listNav(rowsEl, {
+  group: 'Transactions list',
+  describe: (row) => row.getAttribute('aria-label') ?? '',
+  actions: [
+    {
+      keys: 'x',
+      description: 'Select or unselect the row',
+      run: (row) => row.querySelector<HTMLInputElement>('td[data-cell=check] input')?.click(),
+    },
+    { keys: 'e', description: 'Edit the row', run: (row) => withItem(row, openEditor) },
+    { keys: 'enter', description: 'Edit the row', run: (row) => withItem(row, openEditor), hidden: true },
+    {
+      keys: 'c',
+      description: 'Change the category',
+      run: (row) =>
+        withItem(row, async (t) => {
+          const id = await pickCategory(categories, `Category for ${t.description.slice(0, 40)}`);
+          if (id !== undefined && id !== t.category_id) await setCategory(t, id);
+          rowEl(t.id)?.focus();
+        }),
+    },
+    { keys: 'delete', description: 'Delete the row (with Undo)', run: (row) => withItem(row, remove) },
+  ],
+});
+
+function withItem(row: HTMLTableRowElement, fn: (t: Transaction) => unknown) {
+  const t = items.find((x) => String(x.id) === row.dataset.id);
+  if (t) void fn(t);
+}
+
+const wantsNew = new URLSearchParams(location.search).has('new');
 const initial = urlFilters();
 if (Object.values(initial).some(Boolean)) $('#filters').classList.add('is-open');
 setValues(filtersForm, initial);
 void categoriesReady().then(() => setValues(filtersForm, { category: initial.category }), () => undefined);
+// load() rewrites the URL from the filters, which also drops ?new=1.
 void load(initial);
+if (wantsNew) void categoriesReady().then(() => openEditor(null), () => openEditor(null));
