@@ -1,0 +1,30 @@
+{
+  "rows": [
+    {
+      "date": "2026-06-03",
+      "description": "UPI-ZEPTO-ZEPTO@YBL",
+      "amount": 320,
+      "type": "debit"
+    },
+    {
+      "date": "2026-06-04",
+      "description": "NEFT CR-TEST FRIEND",
+      "amount": 1000,
+      "type": "credit"
+    },
+    {
+      "date": "2026-06-20",
+      "description": "UPI-METRO CARD RECHARGE",
+      "amount": 200,
+      "type": "debit"
+    }
+  ],
+  "last4": "8642",
+  "last4Source": "file name",
+  "skipped": [],
+  "joined": 0,
+  "balance": {
+    "checked": 2,
+    "mismatches": 0
+  }
+}

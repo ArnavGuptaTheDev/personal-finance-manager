@@ -1,0 +1,55 @@
+{
+  "rows": [
+    {
+      "date": "2026-04-01",
+      "description": "UPI-SWIGGY-SWIGGY8@YBL-412398712 -PAYMENT FROM PHONE",
+      "amount": 450,
+      "type": "debit"
+    },
+    {
+      "date": "2026-04-02",
+      "description": "NEFT CR-ACME CORP SALARY APR",
+      "amount": 50000,
+      "type": "credit"
+    },
+    {
+      "date": "2026-04-05",
+      "description": "POS 416021XXXXXX1234 BLINKIT",
+      "amount": 1050.5,
+      "type": "debit"
+    },
+    {
+      "date": "2026-04-10",
+      "description": "REV-UPI-SWIGGY REFUND",
+      "amount": 450,
+      "type": "credit",
+      "note": "Negative amount in the statement, imported as the opposite direction (e.g. a reversal)"
+    },
+    {
+      "date": "2026-04-28",
+      "description": "ACH D- TEST INSURANCE LTD",
+      "amount": 2000,
+      "type": "debit"
+    },
+    {
+      "date": "2026-05-02",
+      "description": "NEFT CR-ACME CORP SALARY MAY",
+      "amount": 50000,
+      "type": "credit"
+    },
+    {
+      "date": "2026-05-15",
+      "description": "UPI-RENT-LANDLORD@OKAXIS",
+      "amount": 25000,
+      "type": "debit"
+    }
+  ],
+  "last4": "4321",
+  "last4Source": "statement",
+  "skipped": [],
+  "joined": 1,
+  "balance": {
+    "checked": 6,
+    "mismatches": 0
+  }
+}

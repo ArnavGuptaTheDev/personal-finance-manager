@@ -1,0 +1,20 @@
+{
+  "about": "HDFC credit card .xls: Cr in its own column and inside the amount, a wrapped description",
+  "format": "hdfc:credit_card",
+  "file": {
+    "type": "xls",
+    "rows": [
+      ["Card No : 5555 XXXX XXXX 4321"],
+      ["Statement Date : 15/07/2026"],
+      [],
+      ["Transaction type", "Primary / Addon Customer Name", "DATE", "Description", "AMT", "Debit / Credit"],
+      ["Domestic", "TEST USER", "02/07/2026", "SWIGGY BANGALORE", "640.00", ""],
+      ["Domestic", "TEST USER", "05/07/2026", "AMAZON PAY INDIA", "2,499.00", ""],
+      ["", "", "", "MUMBAI IN", "", ""],
+      ["Domestic", "TEST USER", "09/07/2026", "REFUND AMAZON PAY INDIA", "499.00", "Cr"],
+      ["Domestic", "TEST USER", "12/07/2026", "PAYMENT RECEIVED - NETBANKING", "10,000.00 Cr", ""],
+      [],
+      ["Total Dues", "", "", "", "2,640.00"]
+    ]
+  }
+}

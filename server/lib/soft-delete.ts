@@ -1,6 +1,6 @@
 // Deletes set deleted_at instead of removing the row, so they can be undone.
 // Restores only touch the caller's own rows that are actually deleted.
-export type SoftTable = 'transactions' | 'budgets' | 'categories' | 'category_keywords' | 'people' | 'loans' | 'loan_payments' | 'emis';
+export type SoftTable = 'transactions' | 'budgets' | 'categories' | 'category_keywords' | 'people' | 'loans' | 'loan_payments' | 'emis' | 'import_formats';
 
 export async function softDelete(db: D1Database, table: SoftTable, id: number, uid: number, extra = '', ...extraArgs: number[]): Promise<boolean> {
   const res = await db

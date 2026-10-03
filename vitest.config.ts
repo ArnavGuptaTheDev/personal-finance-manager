@@ -33,7 +33,7 @@ export default defineConfig(async () => {
           // Browser-side modules (parsers, categoriser) under Node.
           test: {
             name: 'unit',
-            include: ['test/unit/**/*.test.ts'],
+            include: ['test/unit/**/*.test.ts', 'test/parsers/**/*.test.ts'],
             environment: 'node',
           },
         },

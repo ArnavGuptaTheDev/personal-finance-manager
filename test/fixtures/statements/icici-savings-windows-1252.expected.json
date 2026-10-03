@@ -1,0 +1,30 @@
+{
+  "rows": [
+    {
+      "date": "2026-09-02",
+      "description": "UPI/CAFÉ COFFEE DAY/77",
+      "amount": 280,
+      "type": "debit"
+    },
+    {
+      "date": "2026-09-03",
+      "description": "UPI/JOSÉ PAINTER/78",
+      "amount": 1500,
+      "type": "debit"
+    }
+  ],
+  "last4": "2244",
+  "last4Source": "statement",
+  "skipped": [
+    {
+      "line": 4,
+      "reason": "Balance brought forward",
+      "text": "1 01/09/2026 B/F 3,000.00"
+    }
+  ],
+  "joined": 0,
+  "balance": {
+    "checked": 2,
+    "mismatches": 0
+  }
+}

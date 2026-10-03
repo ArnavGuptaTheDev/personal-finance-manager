@@ -1,0 +1,15 @@
+{
+  "about": "HDFC savings with a row missing between two others: the running balance must flag the row after the gap",
+  "format": "hdfc:savings",
+  "expectMismatches": true,
+  "file": {
+    "type": "xls",
+    "rows": [
+      ["Account No : 50100000009999"],
+      ["Date", "Narration", "Chq./Ref.No.", "Value Dt", "Withdrawal Amt.", "Deposit Amt.", "Closing Balance"],
+      ["01/10/26", "UPI-A", "1", "01/10/26", "100.00", "", "900.00"],
+      ["03/10/26", "UPI-C", "3", "03/10/26", "100.00", "", "700.00"],
+      ["05/10/26", "UPI-D", "4", "05/10/26", "50.00", "", "650.00"]
+    ]
+  }
+}

@@ -62,6 +62,11 @@ const ACTIONS: Record<string, string> = {
   'DELETE /api/emis/:id': 'emi.delete',
   'POST /api/emis/:id/restore': 'emi.restore',
 
+  'GET /api/import-formats': 'import_format.list',
+  'POST /api/import-formats': 'import_format.create',
+  'DELETE /api/import-formats/:id': 'import_format.delete',
+  'POST /api/import-formats/:id/restore': 'import_format.restore',
+
   'GET /api/admin/users': 'admin.users_view',
   'POST /api/admin/access': 'admin.access_grant',
   'DELETE /api/admin/access/:email': 'admin.access_revoke',

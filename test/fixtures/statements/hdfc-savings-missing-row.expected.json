@@ -1,0 +1,31 @@
+{
+  "rows": [
+    {
+      "date": "2026-10-01",
+      "description": "UPI-A",
+      "amount": 100,
+      "type": "debit"
+    },
+    {
+      "date": "2026-10-03",
+      "description": "UPI-C",
+      "amount": 100,
+      "type": "debit",
+      "note": "Running balance doesn't add up here (expected 800.00, statement shows 700.00): a row nearby may be missing or misread"
+    },
+    {
+      "date": "2026-10-05",
+      "description": "UPI-D",
+      "amount": 50,
+      "type": "debit"
+    }
+  ],
+  "last4": "9999",
+  "last4Source": "statement",
+  "skipped": [],
+  "joined": 0,
+  "balance": {
+    "checked": 2,
+    "mismatches": 1
+  }
+}

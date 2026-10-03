@@ -1,0 +1,16 @@
+{
+  "about": "ICICI credit card CSV: two identical same-day rows kept apart by their serial numbers, a CR payment",
+  "format": "icici:credit_card",
+  "file": {
+    "type": "csv",
+    "lines": [
+      "Accountno:,4315XXXXXXXX1357",
+      "Customer Name:,TEST USER",
+      "",
+      "Date,Sr.No.,Transaction Details,Reward Point Header,Intl.Amount,Amount(in Rs),BillingAmountSign",
+      "10/09/2026,22221,UBER INDIA SYSTEMS,4,0,412.00,",
+      "10/09/2026,22222,UBER INDIA SYSTEMS,4,0,412.00,",
+      "15/09/2026,22223,PAYMENT RECEIVED THANK YOU,0,0,\"8,000.00\",CR"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "rows": [
+    {
+      "date": "2026-07-02",
+      "description": "SWIGGY BANGALORE",
+      "amount": 640,
+      "type": "debit"
+    },
+    {
+      "date": "2026-07-05",
+      "description": "AMAZON PAY INDIA MUMBAI IN",
+      "amount": 2499,
+      "type": "debit"
+    },
+    {
+      "date": "2026-07-09",
+      "description": "REFUND AMAZON PAY INDIA",
+      "amount": 499,
+      "type": "credit"
+    },
+    {
+      "date": "2026-07-12",
+      "description": "PAYMENT RECEIVED - NETBANKING",
+      "amount": 10000,
+      "type": "credit"
+    }
+  ],
+  "last4": "4321",
+  "last4Source": "statement",
+  "skipped": [],
+  "joined": 1,
+  "balance": null
+}

@@ -63,6 +63,11 @@ const LABELS: Record<string, string> = {
   'emi.delete': 'Deleted an EMI',
   'emi.restore': 'Restored an EMI',
 
+  'import_format.list': 'Viewed saved statement formats',
+  'import_format.create': 'Saved a statement format',
+  'import_format.delete': 'Deleted a statement format',
+  'import_format.restore': 'Restored a statement format',
+
   'admin.users_view': 'Viewed users & access',
   'admin.access_grant': 'Granted access',
   'admin.access_revoke': 'Revoked access',
@@ -71,7 +76,7 @@ const LABELS: Record<string, string> = {
 };
 
 export const actionLabel = (action: string) => LABELS[action] ?? action;
-export const ACTION_GROUPS = ['auth', 'account', 'transaction', 'category', 'budget', 'summary', 'person', 'loan', 'emi', 'admin', 'security'];
+export const ACTION_GROUPS = ['auth', 'account', 'transaction', 'category', 'budget', 'summary', 'person', 'loan', 'emi', 'import_format', 'admin', 'security'];
 
 const timeFmt = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' });
 export const fmtTime = (unix: number) => timeFmt.format(new Date(unix * 1000));

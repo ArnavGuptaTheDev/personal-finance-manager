@@ -1,0 +1,19 @@
+{
+  "about": "ICICI savings CSV listed newest first, ending with the B/F row; the balance check must read it backwards",
+  "format": "icici:savings",
+  "file": {
+    "type": "csv",
+    "lines": [
+      "Account Number,XXXXXXXX7788",
+      "Transaction Period,From 01/08/2026 To 31/08/2026",
+      "",
+      "S No.,Date,Mode,Particulars,Deposits,Withdrawals,Balance",
+      "4,25/08/2026,UPI,UPI/BIGBASKET/998,,\"1,200.00\",\"12,550.00\"",
+      "3,20/08/2026,NEFT,NEFT-REFUND-TEST AIRLINE,\"750.00\",,\"13,750.00\"",
+      "2,05/08/2026,UPI,UPI/ELECTRICITY BOARD/12,,\"2,000.00\",\"13,000.00\"",
+      "1,01/08/2026,,B/F,,,\"15,000.00\"",
+      "",
+      "Legends Used in Account Statement"
+    ]
+  }
+}

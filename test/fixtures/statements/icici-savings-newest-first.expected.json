@@ -1,0 +1,36 @@
+{
+  "rows": [
+    {
+      "date": "2026-08-05",
+      "description": "UPI/ELECTRICITY BOARD/12",
+      "amount": 2000,
+      "type": "debit"
+    },
+    {
+      "date": "2026-08-20",
+      "description": "NEFT-REFUND-TEST AIRLINE",
+      "amount": 750,
+      "type": "credit"
+    },
+    {
+      "date": "2026-08-25",
+      "description": "UPI/BIGBASKET/998",
+      "amount": 1200,
+      "type": "debit"
+    }
+  ],
+  "last4": "7788",
+  "last4Source": "statement",
+  "skipped": [
+    {
+      "line": 8,
+      "reason": "Balance brought forward",
+      "text": "1 01/08/2026 B/F 15,000.00"
+    }
+  ],
+  "joined": 0,
+  "balance": {
+    "checked": 3,
+    "mismatches": 0
+  }
+}

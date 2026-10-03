@@ -1,0 +1,21 @@
+{
+  "about": "HDFC savings .xlsx whose column titles are split over two header rows, with real Excel date cells",
+  "format": "hdfc:savings",
+  "file": {
+    "type": "xlsx",
+    "dateFormat": "dd/mm/yyyy",
+    "name": "Acct_XXXXXXXX8642_Jun.xlsx",
+    "rows": [
+      ["HDFC BANK Ltd."],
+      ["Statement From : 01/06/2026 To : 30/06/2026"],
+      [],
+      ["Date", "Narration", "Ref", "Value Dt", "Amount", "Amount", "Closing"],
+      ["", "", "", "", "Withdrawal", "Deposit", "Balance"],
+      [{ "date": "2026-06-03" }, "UPI-ZEPTO-ZEPTO@YBL", "1", { "date": "2026-06-03" }, 320, "", 4680],
+      [{ "date": "2026-06-04" }, "NEFT CR-TEST FRIEND", "2", { "date": "2026-06-04" }, "", 1000, 5680],
+      [{ "date": "2026-06-20" }, "UPI-METRO CARD RECHARGE", "3", { "date": "2026-06-20" }, 200, "", 5480],
+      [],
+      ["STATEMENT SUMMARY :-"]
+    ]
+  }
+}

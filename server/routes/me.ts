@@ -25,7 +25,7 @@ meRoutes.get('/activity', async (c) => {
 meRoutes.get('/export', async (c) => {
   const uid = c.get('userId');
   const q = (sql: string) => c.env.DB.prepare(sql).bind(uid);
-  const [user, categories, keywords, transactions, budgets, people, loans, payments, emis] = await c.env.DB.batch([
+  const [user, categories, keywords, transactions, budgets, people, loans, payments, emis, formats] = await c.env.DB.batch([
     q('SELECT email, name, created_at FROM users WHERE id = ?'),
     q('SELECT id, name, kind FROM categories WHERE user_id = ? AND deleted_at IS NULL'),
     q('SELECT category_id, keyword, regex FROM category_keywords WHERE user_id = ? AND deleted_at IS NULL'),
@@ -37,6 +37,7 @@ meRoutes.get('/export', async (c) => {
     q('SELECT loan_id, amount_minor / 100.0 AS amount, date, note FROM loan_payments WHERE user_id = ? AND deleted_at IS NULL'),
     q(`SELECT title, lender, installment_minor / 100.0 AS installment, frequency_unit, frequency_value,
               start_date, end_date, note FROM emis WHERE user_id = ? AND deleted_at IS NULL`),
+    q('SELECT name, mapping FROM import_formats WHERE user_id = ? AND deleted_at IS NULL'),
   ]);
   c.header('Content-Disposition', 'attachment; filename="personal-finance-export.json"');
   return c.json({
@@ -50,6 +51,7 @@ meRoutes.get('/export', async (c) => {
     loans: loans?.results,
     loan_payments: payments?.results,
     emis: emis?.results,
+    import_formats: (formats?.results as { name: string; mapping: string }[] | undefined)?.map((f) => ({ name: f.name, mapping: JSON.parse(f.mapping) as unknown })),
   });
 });
 

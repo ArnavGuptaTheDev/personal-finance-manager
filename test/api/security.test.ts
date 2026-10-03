@@ -21,6 +21,7 @@ const PROTECTED: [string, string][] = [
   ['POST', '/transactions/delete'], ['POST', '/transactions/restore'], ['POST', '/transactions/1/restore'],
   ['POST', '/categories/1/restore'], ['POST', '/categories/keywords/1/restore'], ['POST', '/budgets/1/restore'],
   ['POST', '/people/1/restore'], ['POST', '/loans/1/restore'], ['POST', '/loans/1/payments/1/restore'], ['POST', '/emis/1/restore'],
+  ['GET', '/import-formats'], ['POST', '/import-formats'], ['DELETE', '/import-formats/1'], ['POST', '/import-formats/1/restore'],
 ];
 const ADMIN = PROTECTED.filter(([, p]) => p.startsWith('/admin'));
 

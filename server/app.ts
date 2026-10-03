@@ -8,6 +8,7 @@ import { auditTrail, noteAudit } from './lib/audit';
 import { adminRoutes } from './routes/admin';
 import { categoryRoutes } from './routes/categories';
 import { emiRoutes } from './routes/emis';
+import { importFormatRoutes } from './routes/import-formats';
 import { loanRoutes, peopleRoutes } from './routes/loans';
 import { meRoutes } from './routes/me';
 import { budgetRoutes, summaryRoutes } from './routes/summary';
@@ -68,6 +69,7 @@ app.route('/budgets', budgetRoutes);
 app.route('/people', peopleRoutes);
 app.route('/loans', loanRoutes);
 app.route('/emis', emiRoutes);
+app.route('/import-formats', importFormatRoutes);
 app.route('/admin', adminRoutes); // requireOwner inside
 
 app.notFound((c) => c.json({ error: 'Not found' }, 404));

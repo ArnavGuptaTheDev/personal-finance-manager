@@ -12,8 +12,10 @@ Applying it touches production, so I have not done it. Commits are kept **local*
 1. run `npm run db:migrate:remote` (applies `0003_soft_delete.sql`, and any later migrations listed below);
 2. then `git push` (or tell me to).
 
-Pending migrations: `0003_soft_delete.sql` (adds a nullable `deleted_at` column to 8 tables plus partial
-indexes; no existing column or row is changed).
+Pending migrations (all additive; no existing column or row is changed):
+
+- `0003_soft_delete.sql`: a nullable `deleted_at` column on 8 tables, plus partial indexes;
+- `0004_import_formats.sql`: a new `import_formats` table for saved column mappings.
 
 ## Done
 
@@ -55,13 +57,29 @@ indexes; no existing column or row is changed).
   date shown under the field), category type-ahead, Save and add another (Ctrl+Enter); Import review uses
   the same list keys (`x` include, `c` category).
 
+- **Phase 3** (committed locally, synthetic fixtures only):
+  - Formats are pure config (`parsers/formats.ts`); one shared parser. Output for the four existing formats
+    is unchanged (all earlier parser tests pass as they were).
+  - Two-row headers (R1); account digits from the statement header, else from the file name, shown in the
+    review as an editable "Account ending" field that re-checks duplicates when changed (R2); running-balance
+    check on every row when a balance column exists, oldest-first or newest-first, mismatches flagged on the
+    row and summarised (R3); CSV encoding detection: UTF-8 (BOM or not), UTF-16, else Windows-1252 (R6).
+  - Unrecognised files (or "Another bank") open a column-mapping card: header row, column roles, amount rule,
+    date order, a sample of the rows, preview; optionally saved as a named format (column titles and rules
+    only; the API refuses anything else). Saved formats appear in the Bank picker and can be deleted (Undo).
+  - `/api/import-formats` (list, create, delete, restore) with auth, isolation, validation and export tests;
+    migration 0004.
+  - Fixture suite: 7 synthetic fixtures in `test/fixtures/statements/` with expected JSON, run by
+    `test/parsers/fixtures.test.ts`; every fixture with a balance column has zero mismatches (one fixture
+    deliberately drops a row to prove mismatches are caught).
+
 ## In progress
 
-- Phase 3: statement parsing (synthetic fixtures only).
+- Phase 4: categorisation that learns.
 
 ## Next
 
-- Phase 4 (categorisation), Phase 7 (audit retention + purge).
+- Phase 7 (audit retention + purge).
 
 ## Decisions made on your behalf
 
@@ -90,7 +108,24 @@ indexes; no existing column or row is changed).
   categories are kept as ids in `sessionStorage` (this tab only). The palette's "< 50 ms" is by design
   (built once, no network on open) but not measured, since that needs a browser run.
 - Without a year, a typed date more than a month ahead is read as last year ("28/12" typed in January).
+- Phase 3: rows imported with a hand-mapped format store the format's name (slugged) as `bank`; unsaved
+  mappings store `other`. The mapping UI handles single-row headers only (built-in formats handle two-row
+  ones). Saved formats are soft-deleted like everything else, so they get Undo and the 30-day purge.
+- Node's `windows-1252` decoder maps 0x80–0x9F as Latin-1, so the parser maps that range itself (€, smart
+  quotes, dashes) to behave the same in every browser.
 
 ## Needs real statements (Phase 3)
 
-_(filled in during Phase 3)_
+Everything above is verified only against synthetic files I built to match the layouts the parser already
+knew. Still to do once you send anonymised originals (Open question 6 in PLAN.md):
+
+- Check each built-in format against a real download: HDFC savings `.xls`, HDFC card, ICICI savings `.xls`
+  and iMobile CSV, ICICI card CSV. In particular: real header titles, footer markers, multi-row headers,
+  how reversals and refunds really appear, and whether the account number sits where the patterns look.
+- Turn each real file into a fixture with a hand-checked `.expected.json` (kept out of git if it can't be
+  fully anonymised; synthetic look-alikes go in the repo).
+- Confirm the balance check on real statements (rounding, opening-balance rows, newest-first order).
+- A real file that fails today, to confirm it reaches the mapping card and maps cleanly.
+- PDF statements (proposal only, not built): estimate and recommendation need one text PDF and one
+  password-protected PDF. Expected shape: pdf.js (~1 MB, self-hosted) loaded only on Import, unlocked locally,
+  per-bank text-to-table rules; scanned PDFs can't be read.

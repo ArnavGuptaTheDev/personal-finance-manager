@@ -1,0 +1,16 @@
+{
+  "about": "ICICI savings CSV saved by Excel on Windows (Windows-1252, not UTF-8) with accented names",
+  "format": "icici:savings",
+  "file": {
+    "type": "csv",
+    "encoding": "windows-1252",
+    "lines": [
+      "Account Number,XXXXXXXX2244",
+      "",
+      "S No.,Date,Mode,Particulars,Deposits,Withdrawals,Balance",
+      "1,01/09/2026,,B/F,,,\"3,000.00\"",
+      "2,02/09/2026,UPI,UPI/CAFÉ COFFEE DAY/77,,\"280.00\",\"2,720.00\"",
+      "3,03/09/2026,UPI,UPI/JOSÉ PAINTER/78,,\"1,500.00\",\"1,220.00\""
+    ]
+  }
+}

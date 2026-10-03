@@ -1,0 +1,27 @@
+{
+  "rows": [
+    {
+      "date": "2026-09-10",
+      "description": "UBER INDIA SYSTEMS (Sr:22221)",
+      "amount": 412,
+      "type": "debit"
+    },
+    {
+      "date": "2026-09-10",
+      "description": "UBER INDIA SYSTEMS (Sr:22222)",
+      "amount": 412,
+      "type": "debit"
+    },
+    {
+      "date": "2026-09-15",
+      "description": "PAYMENT RECEIVED THANK YOU (Sr:22223)",
+      "amount": 8000,
+      "type": "credit"
+    }
+  ],
+  "last4": "1357",
+  "last4Source": "statement",
+  "skipped": [],
+  "joined": 0,
+  "balance": null
+}
