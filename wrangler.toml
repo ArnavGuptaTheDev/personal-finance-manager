@@ -4,7 +4,7 @@
 # The name must match the Worker's name in the Cloudflare dashboard.
 name = "personal-finance-manager"
 main = "server/worker.ts"
-compatibility_date = "2026-09-01"
+compatibility_date = "2026-08-15"
 
 # Only the custom domain serves the app; no *.workers.dev or preview URLs
 # (Google sign-in only works on APP_URL anyway).
